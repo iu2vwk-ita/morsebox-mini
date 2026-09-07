@@ -95,3 +95,5 @@ sudo systemctl daemon-reload && sudo systemctl restart iu2vwk-morse
 * `Morse Code BOX.3mf`. The box itself, ready to 3D print
 
 73 de IU2VWK · Angelo — https://iu2vwk.com
+
+Thanks to Panko for the inspiration and the original [Simple CW Keyer](https://github.com/Panko74/Simple-CW-Keyer).
