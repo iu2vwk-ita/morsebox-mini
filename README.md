@@ -1,49 +1,48 @@
 # MorseBox Mini — WiFi CW Trainer
 
-A standalone Morse keyer in a box. A Raspberry Pi 4 serves a web UI over its own
-WiFi access point: join the network, open the page, key with a real paddle (or
-the on-screen touch paddle) and read live decoded text. Zero-latency sidetone
-from one or more piezo buzzers driven straight from the GPIO pins — no audio
-pipeline, no lag.
+A Morse keyer in a box. A Raspberry Pi 4 serves a web page over its own WiFi.
+Join the network, open the page, key with a real paddle or the touch paddle on
+screen, and read back your keying as text. The sidetone comes straight off the
+GPIO pins with zero lag, on up to three piezo buzzers at once.
+
+No dependencies. Plain Python 3 out of the box. No paddle handy? Touch mode
+works fine without one.
 
 ![MorseBox assembled](box.png)
 
 ## What it does
 
-- Iambic A / B and straight-key modes, 5–40 WPM, paddle reverse (DX⇄SX)
-- Live CW decoding shown on the web page and on the optional MAX7219 LED matrix
-- Sidetone with adjustable pitch (400–4000 Hz) and volume, played on up to 3
-  piezo buzzers at once (`--buzz-pins 24,25,12`)
-- Works with a physical paddle, a straight key, the touch paddle, or the
-  keyboard (`Z`/`X`/space)
-- No dependencies: pure Python 3 standard library. A physical paddle is optional
-  (demo/touch mode works without one)
+* Iambic A / B and straight key, 5 to 40 WPM, paddle reverse (DX⇄SX)
+* Live decoded text on the web page and on the optional MAX7219 LED matrix
+* Sidetone pitch (400 to 4000 Hz) and volume from the page, played on 1 to 3
+  piezos together (`--buzz-pins 24,25,12`)
+* Key with a paddle, a straight key, the on screen paddle, or the keyboard
+  (`Z` / `X` / space)
 
 ![Web UI](screenshot-ui.png)
 
 ## Open the web UI
 
-The Pi **is the access point**. No home router, no internet needed.
+The Pi is the access point. No home router, no internet.
 
-1. Power the box, wait ~30 seconds
-2. Join the WiFi **`IU2VWK-MORSE`** (password `morse1234`) — your phone will say
-   "connected without internet", that's normal, stay connected
+1. Power the box, wait about 30 seconds
+2. Join the WiFi **`IU2VWK-MORSE`** (password `morse1234`). Your phone will say
+   connected without internet. That is normal, stay on it
 3. Open **`http://10.42.0.1`**
 
-The lid carries two QR codes: **WIFI** (joins the network) and **APP** (opens
-the page). At home the box also joins your LAN over Ethernet and answers on
-port 80.
+The lid has two QR codes: **WIFI** joins the network, **APP** opens the page.
+At home the box also works over Ethernet on port 80.
 
 ## Hardware
 
-- Raspberry Pi 4 (also runs on Pi 5 / Zero 2 W) + power supply + microSD with
-  Raspberry Pi OS Lite (64-bit)
-- Paddle or straight key wired to the GPIO header (contacts to GND, internal
-  pull-ups — no extra parts)
-- 1–3 passive piezo buzzers (KY-006 3-pin modules)
-- Optional MAX7219 8×8 LED matrix (shows WPM + live decoded text)
+* Raspberry Pi 4 (runs on Pi 5 and Zero 2 W too) with power supply and microSD
+  loaded with Raspberry Pi OS Lite 64 bit
+* Paddle or straight key wired to the GPIO header. Contacts to GND, the
+  internal pull ups do the rest, no extra parts
+* 1 to 3 passive piezo buzzers (KY-006 3 pin modules)
+* Optional MAX7219 8x8 LED matrix. Shows WPM plus live decoded text
 
-### Wiring (BCM numbering, key contacts to GND)
+### Wiring (BCM numbers, key contacts to GND)
 
 | Function | GPIO | Header pin |
 |----------|------|------------|
@@ -56,10 +55,11 @@ port 80.
 | Piezo 3 signal | 12 | 32 |
 | MAX7219 DIN / CLK / CS | 10 / 11 / 8 | 19 / 23 / 24 |
 
-Each KY-006 module: `S` → signal pin, `+` (middle) → 5V (pins 2/4), `−` → GND.
-Every `5V` pin is the same rail, every `GND` is the same rail — power wires may
-share pins, but each `S` needs its own GPIO. Buzzer mode is `passive` by
-default; for self-oscillating active buzzers add `--buzzer-mode active`.
+Each KY-006 module: `S` to its signal pin, `+` (middle) to 5V (pins 2/4),
+`−` to GND. All `5V` pins are one rail and all `GND` pins are one rail, so
+power wires can share. Each `S` needs its own GPIO. Default buzzer mode is
+`passive`. Got a self beeping active buzzer instead? Start with
+`--buzzer-mode active`.
 
 ## Install
 
@@ -70,11 +70,12 @@ cd morsebox
 sudo bash install.sh
 ```
 
-This sets hostname `iu2vwk-morse`, installs the autostart service, and creates
-the `IU2VWK-MORSE` access point (password `morse1234`, changeable at the top of
-`install.sh`). From then on: **power = on-air trainer**.
+That sets the hostname to `iu2vwk-morse`, installs the autostart service, and
+brings up the `IU2VWK-MORSE` access point (password `morse1234`, change it at
+the top of `install.sh` first if you like). From then on, power means trainer
+is on.
 
-Multiple buzzers:
+Three buzzers:
 
 ```bash
 # /etc/systemd/system/iu2vwk-morse.service
@@ -82,11 +83,12 @@ ExecStart=/usr/bin/python3 /opt/iu2vwk-morse/server.py --port 80 --buzz-pins 24,
 sudo systemctl daemon-reload && sudo systemctl restart iu2vwk-morse
 ```
 
-## Box & fair material
+## Box and fair material
 
-- `qr-1-wifi.png` / `qr-2-pagina.png` — **WIFI** and **APP** QR codes for the lid
-- `qr-1-wifi.dxf` / `qr-2-pagina.dxf` — same QRs as 2 mm-module geometry for
-  laser engraving in Autodesk Inventor
-- `screenshot-ui-phone.png` — mobile layout reference
+* `qr-1-wifi.png` / `qr-2-pagina.png`. The **WIFI** and **APP** QR codes for
+  the lid
+* `qr-1-wifi.dxf` / `qr-2-pagina.dxf`. Same QRs as 2 mm geometry for laser
+  engraving in Autodesk Inventor
+* `screenshot-ui-phone.png`. How the page looks on a phone
 
 73 de IU2VWK · Angelo — https://iu2vwk.com
