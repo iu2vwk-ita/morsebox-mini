@@ -9,7 +9,6 @@ No dependencies. Plain Python 3 out of the box. No paddle handy? Touch mode
 works fine without one.
 
 ![MorseBox assembled](box.png)
-![Three piezos](piezo.png)
 
 ## What it does
 
@@ -61,6 +60,8 @@ Each KY-006 module: `S` to its signal pin, `+` (middle) to 5V (pins 2/4),
 power wires can share. Each `S` needs its own GPIO. Default buzzer mode is
 `passive`. Got a self beeping active buzzer instead? Start with
 `--buzzer-mode active`.
+
+<img src="piezo.png" alt="The three piezos wired in" width="751">
 
 ## Install
 
