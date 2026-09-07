@@ -49,11 +49,11 @@ function connect() {
   ws.onopen = () => {
     retry = 0;
     els.dot.className = 'dot on';
-    els.connTxt.textContent = 'collegato';
+    els.connTxt.textContent = 'connected';
   };
   ws.onclose = () => {
     els.dot.className = 'dot off';
-    els.connTxt.textContent = 'riconnessione…';
+    els.connTxt.textContent = 'reconnecting…';
     setTimeout(connect, Math.min(5000, 400 * ++retry + 400));
   };
   ws.onmessage = ev => {
@@ -63,7 +63,7 @@ function connect() {
       applySettings(m.settings);
       els.decoded.textContent = m.text || '';
       scrollRx();
-      els.gpio.textContent = m.gpio && m.gpio !== 'mock' ? 'GPIO: ' + m.gpio : 'demo senza GPIO';
+      els.gpio.textContent = m.gpio && m.gpio !== 'mock' ? 'GPIO: ' + m.gpio : 'demo, no GPIO';
     } else if (m.t === 'settings') {
       applySettings(m.settings);
     } else if (m.t === 'key') {
@@ -88,7 +88,7 @@ function setKey(on) {
   sidetone(on);
 }
 function setPads(dit, dah) {
-  // dit = leva SX fisica (o DX se reverse): le leve seguono i tasti reali
+  // dit = physical LEFT lever (or RIGHT if reverse): levers follow the real keys
   els.leverL.classList.toggle('hit', dit);
   els.leverR.classList.toggle('hit', dah);
 }
@@ -100,12 +100,12 @@ function applySettings(s) {
   els.wpmEcho.textContent = '· ' + S.wpm + ' WPM';
   if (document.activeElement !== els.wpmSlider) els.wpmSlider.value = S.wpm;
   els.revBtn.setAttribute('aria-pressed', S.reverse ? 'true' : 'false');
-  els.revState.textContent = S.reverse ? 'invertito' : 'normale';
+  els.revState.textContent = S.reverse ? 'reversed' : 'normal';
   const ditLeft = !S.reverse;
   els.padLT.textContent = ditLeft ? 'DIT' : 'DAH';
   els.padRT.textContent = ditLeft ? 'DAH' : 'DIT';
-  els.labL.textContent = (ditLeft ? 'DIT' : 'DAH') + ' · SX';
-  els.labR.textContent = (ditLeft ? 'DAH' : 'DIT') + ' · DX';
+  els.labL.textContent = (ditLeft ? 'DIT' : 'DAH') + ' · L';
+  els.labR.textContent = (ditLeft ? 'DAH' : 'DIT') + ' · R';
   els.seg.forEach(b => b.classList.toggle('on', b.dataset.mode === S.mode));
   els.touch.classList.toggle('dim', S.mode === 'straight');
   if (document.activeElement !== els.tone) els.tone.value = S.tone;
@@ -169,7 +169,7 @@ bindHold(els.padL, v => { local.l = v; refreshPadButtons(); pushPads(); });
 bindHold(els.padR, v => { local.r = v; refreshPadButtons(); pushPads(); });
 bindHold(els.skey, v => { local.k = v; refreshPadButtons(); pushPads(); });
 
-/* tastiera: Z = leva sx, X = leva dx, Spazio = verticale */
+/* keyboard: Z = left lever, X = right lever, Space = straight key */
 const keymap = { KeyZ: 'l', KeyX: 'r', Space: 'k' };
 document.addEventListener('keydown', e => {
   const k = keymap[e.code];
@@ -185,5 +185,5 @@ document.addEventListener('keyup', e => {
 });
 
 /* ---------------- go ---------------- */
-els.host.textContent = location.host + ' · QR in sezione → questa pagina';
+els.host.textContent = location.host + ' · QR at the booth leads here';
 connect();

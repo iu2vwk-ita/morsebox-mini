@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="it">
+<html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
@@ -16,14 +16,14 @@
       <p id="hostLine">…</p>
     </div>
   </div>
-  <div class="conn"><span id="connDot" class="dot off"></span><span id="connTxt">connessione…</span></div>
+  <div class="conn"><span id="connDot" class="dot off"></span><span id="connTxt">connecting…</span></div>
 </header>
 
 <main>
   <section class="panel screen">
     <div class="screen-head">
       <span class="tag">RX · CW <span id="wpmEcho"></span></span>
-      <button id="clearTxt" class="ghost" type="button">pulisci</button>
+      <button id="clearTxt" class="ghost" type="button">clear</button>
     </div>
     <div id="decoded" class="decoded" aria-live="off"></div>
   </section>
@@ -31,36 +31,36 @@
   <section class="panel keymon">
     <div class="lamp-wrap">
       <div class="lamp" id="lamp"></div>
-      <div class="lamp-cap">MANIPOLAZIONE</div>
+      <div class="lamp-cap">KEYING</div>
     </div>
     <div class="paddle-vis" aria-hidden="true">
       <div class="lever left" id="leverL"><i></i><b></b></div>
       <div class="pivot"></div>
       <div class="lever right" id="leverR"><i></i><b></b></div>
     </div>
-    <div class="pad-labels"><span id="labL">DIT · SX</span><span id="labR">DAH · DX</span></div>
+    <div class="pad-labels"><span id="labL">DIT · L</span><span id="labR">DAH · R</span></div>
   </section>
 
   <section class="panel controls">
     <div class="wpm-row">
-      <button id="wpmDown" class="step" type="button" aria-label="rallenta">−</button>
+      <button id="wpmDown" class="step" type="button" aria-label="slower">−</button>
       <div class="wpm-num"><b id="wpmVal">20</b><span>WPM</span></div>
-      <button id="wpmUp" class="step" type="button" aria-label="accelera">+</button>
+      <button id="wpmUp" class="step" type="button" aria-label="faster">+</button>
     </div>
-    <input id="wpmSlider" type="range" min="5" max="40" step="1" value="20" aria-label="velocità in WPM">
+    <input id="wpmSlider" type="range" min="5" max="40" step="1" value="20" aria-label="speed in WPM">
     <div class="ctl-grid">
       <button id="revBtn" class="toggle" type="button" aria-pressed="false">
-        <span class="t-label">PADDLE DX⇄SX</span>
-        <span class="t-state" id="revState">normale</span>
+        <span class="t-label">PADDLE REVERSE</span>
+        <span class="t-state" id="revState">normal</span>
       </button>
-      <div class="seg" role="group" aria-label="modo keyer">
+      <div class="seg" role="group" aria-label="keyer mode">
         <button type="button" data-mode="iambic-a">IAMBIC A</button>
         <button type="button" data-mode="iambic-b" class="on">IAMBIC B</button>
-        <button type="button" data-mode="straight">DIRETTO</button>
+        <button type="button" data-mode="straight">STRAIGHT</button>
       </div>
     </div>
     <div class="sliders">
-      <label>NOTA <b id="toneVal">650 Hz</b>
+      <label>TONE <b id="toneVal">650 Hz</b>
         <input id="toneSlider" type="range" min="400" max="4000" step="10" value="650">
       </label>
       <label>VOLUME <b id="volVal">70%</b>
@@ -71,10 +71,10 @@
 
   <section class="panel touch" id="touchPanel">
     <div class="touch-row">
-      <button id="padL" class="pad" type="button"><b id="padLT">DIT</b><span>sx · Z</span></button>
-      <button id="padR" class="pad" type="button"><b id="padRT">DAH</b><span>dx · X</span></button>
+      <button id="padL" class="pad" type="button"><b id="padLT">DIT</b><span>L · Z</span></button>
+      <button id="padR" class="pad" type="button"><b id="padRT">DAH</b><span>R · X</span></button>
     </div>
-    <button id="straightKey" class="skey" type="button"><b>TASTO VERTICALE</b><span>tieni premuto · barra spaziatrice</span></button>
+    <button id="straightKey" class="skey" type="button"><b>STRAIGHT KEY</b><span>hold · space bar</span></button>
   </section>
 </main>
 
