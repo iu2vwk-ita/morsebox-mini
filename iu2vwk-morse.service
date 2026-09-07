@@ -1,0 +1,16 @@
+[Unit]
+Description=IU2VWK Morse Simulator — keyer + web UI
+After=network-online.target avahi-daemon.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/opt/iu2vwk-morse
+ExecStartPre=/usr/bin/amixer -c 0 set PCM 100% unmute
+ExecStart=/usr/bin/python3 /opt/iu2vwk-morse/server.py --port 80
+Restart=always
+RestartSec=3
+
+[Install]
+WantedBy=multi-user.target
