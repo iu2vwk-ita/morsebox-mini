@@ -6,7 +6,7 @@ the on-screen touch paddle) and read live decoded text. Zero-latency sidetone
 from one or more piezo buzzers driven straight from the GPIO pins — no audio
 pipeline, no lag.
 
-![MorseBox assembled](box.jpg)
+![MorseBox assembled](box.png)
 
 ## What it does
 
