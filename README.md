@@ -9,6 +9,7 @@ No dependencies. Plain Python 3 out of the box. No paddle handy? Touch mode
 works fine without one.
 
 ![MorseBox assembled](box.png)
+![Three piezos](piezo.png)
 
 ## What it does
 
