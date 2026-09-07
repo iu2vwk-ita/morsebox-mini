@@ -90,5 +90,6 @@ sudo systemctl daemon-reload && sudo systemctl restart iu2vwk-morse
 * `qr-1-wifi.dxf` / `qr-2-pagina.dxf`. Same QRs as 2 mm geometry for laser
   engraving in Autodesk Inventor
 * `screenshot-ui-phone.png`. How the page looks on a phone
+* `Morse Code BOX.3mf`. The box itself, ready to 3D print
 
 73 de IU2VWK · Angelo — https://iu2vwk.com
