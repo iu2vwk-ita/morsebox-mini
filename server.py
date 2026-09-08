@@ -2,7 +2,7 @@
 """IU2VWK Morse Simulator — keyer iambico + web UI per Raspberry Pi.
 
 - Legge paddle/tasto verticale dai GPIO (con fallback mock fuori dal Pi).
-- Keyer iambico A/B + modo Diretto, velocita' 5-40 WPM, scambio DX/SX.
+- Keyer iambico A/B + modo Diretto, velocita' 5-60 WPM, scambio DX/SX.
 - Serve la web UI, espone WebSocket per tasti remoti (touch) ed eventi live.
 - Decodifica il CW in testo. Solo stdlib: nessuna dipendenza da installare.
 
@@ -59,7 +59,7 @@ class Settings:
 
     def _clamp(self):
         d = self._data
-        d["wpm"] = max(5, min(40, int(d.get("wpm", 20))))
+        d["wpm"] = max(5, min(60, int(d.get("wpm", 20))))
         d["tone"] = max(400, min(4000, int(d.get("tone", 650))))
         d["reverse"] = bool(d.get("reverse", False))
         if d.get("mode") not in ("iambic-a", "iambic-b", "straight"):
