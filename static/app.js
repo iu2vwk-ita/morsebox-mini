@@ -120,7 +120,7 @@ function saveSettings() {
 
 /* ---------------- controls ---------------- */
 function setWpm(w) {
-  S.wpm = Math.max(5, Math.min(40, Math.round(w)));
+  S.wpm = Math.max(5, Math.min(60, Math.round(w)));
   els.wpmVal.textContent = S.wpm;
   els.wpmSlider.value = S.wpm;
   els.wpmEcho.textContent = '· ' + S.wpm + ' WPM';
