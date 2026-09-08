@@ -530,6 +530,34 @@ class Handler(BaseHTTPRequestHandler):
         self.wfile.write(b"not found")
 
 
+class _Duo:
+    """Versione B: piezo GPIO (zero latenza) + speaker DAC (monitor). Stessa API."""
+
+    def __init__(self, *outs):
+        self.outs = [o for o in outs if o is not None]
+
+    def set(self, on):
+        for o in self.outs:
+            try:
+                o.set(on)
+            except Exception:
+                pass
+
+    def set_freq(self, f):
+        for o in self.outs:
+            try:
+                o.set_freq(f)
+            except Exception:
+                pass
+
+    def set_volume(self, v):
+        for o in self.outs:
+            try:
+                o.set_volume(v)
+            except Exception:
+                pass
+
+
 def _apply_screen(srv, data):
     if getattr(srv, "screen", None):
         srv.screen.set_wpm(data.get("wpm", 20))
@@ -551,6 +579,12 @@ def main():
     ap.add_argument("--buzz-pins", default="24",
                     help="GPIO BCM dei piezo separati da virgola, es. '24' o "
                          "'24,25'. Tutti suonano insieme (default: 24 = pin 18)")
+    ap.add_argument("--speaker", action="store_true",
+                    help="versione B: seno su DAC/altoparlante + AUX con inviluppo "
+                         "(monitor, ~30-80 ms di ritardo; il piezo resta il timing)")
+    ap.add_argument("--speaker-device", default=None,
+                    help="device ALSA dello speaker, es. 'plughw:CARD=Headphones,DEV=0' "
+                         "o 'plughw:CARD=sndrpihifiberry,DEV=0'. Default: jack interno")
     args = ap.parse_args()
     try:
         buzz_pins = [int(p) for p in args.buzz_pins.replace(";", ",").split(",")
@@ -595,6 +629,24 @@ def main():
         else:
             sidetone = None
             print("Buzzer GPIO non disponibile (serve RPi.GPIO)", flush=True)
+        speaker = None
+        if args.speaker:
+            # Versione B (Gianluca): seno su DAC/altoparlante + AUX, con inviluppo.
+            # Monitor ambiente (~30-80 ms di ritardo): NON sostituisce il piezo.
+            speaker = audio.Sidetone(freq=settings.get()["tone"],
+                                     device=args.speaker_device or audio.DEVICE)
+            speaker.set_volume(settings.get()["volume"])
+            speaker.start()
+            if speaker._ok:
+                print("Speaker DAC %s (seno+inviluppo, monitor): ok"
+                      % speaker.device, flush=True)
+            else:
+                print("Speaker DAC %s non disponibile, solo piezo"
+                      % speaker.device, flush=True)
+                speaker = None
+        if speaker is not None:
+            # piezo + speaker insieme, stessa API: il resto del codice non cambia
+            keyer.sidetone = sidetone = _Duo(sidetone, speaker)
 
         def on_key(on):
             hub.broadcast({"t": "key", "on": on, "audio": True})
