@@ -98,14 +98,20 @@ def pcm16(samples):
 
 
 class Sidetone:
-    """Nota pulita verso la cassa (aplay). Un thread alimenta aplay in continuo."""
+    """Seno via ALSA (DAC/jack/USB) verso altoparlante + AUX. Versione B.
 
-    def __init__(self, freq=650, rate=RATE, device=DEVICE):
+    NON sostituisce il piezo GPIO (zero latenza per chi manipola):
+    e' un monitor ambiente con ~30-80 ms di ritardo. Inviluppo anti-click.
+    Stessa API di GPIOTone: set/set_freq/set_volume/start/stop."""
+
+    def __init__(self, freq=650, rate=RATE, device=DEVICE, ramp_ms=4.0):
         self.freq = freq
         self.rate = rate
         self.device = device
+        self._ramp = max(0.5, float(ramp_ms)) / 1000.0  # s, default 4 ms
         self._on = False
         self.volume = 0.7  # 0..1
+        self._gain = 0.0  # inviluppo 0..1, solo il thread _loop lo tocca
         self._lock = threading.Lock()
         self._proc = None
         self._ok = False
@@ -134,9 +140,19 @@ class Sidetone:
         with self._lock:
             self.volume = max(0.0, min(1.0, v / 100.0))
 
+    def stop(self):
+        proc, self._proc = self._proc, None
+        try:
+            if proc and proc.poll() is None:
+                proc.stdin.close()
+                proc.terminate()
+        except (OSError, BrokenPipeError):
+            pass
+
     def _loop(self):
         block = 128  # 2.7 ms: latenza minima
         period = block / self.rate
+        step = 1.0 / (self.rate * self._ramp)  # incr. inviluppo per campione
         i = 0
         # pre-riempi il buffer iniziale di aplay (evita underrun in avvio)
         try:
@@ -150,11 +166,21 @@ class Sidetone:
         while self._proc and self._proc.poll() is None:
             with self._lock:
                 on, freq, vol = self._on, self.freq, self.volume
-            if on:
-                chunk = [0.95 * vol * math.sin(2 * math.pi * freq * (i + k) / self.rate)
-                         for k in range(block)]
-            else:
-                chunk = [0.0] * block
+            target = 1.0 if (on and vol > 0.01) else 0.0
+            # rampa per-campione verso target: niente stacchi = niente click
+            chunk = []
+            g = self._gain
+            for k in range(block):
+                if g < target:
+                    g = min(target, g + step)
+                elif g > target:
+                    g = max(target, g - step)
+                if g <= 0.0001:
+                    chunk.append(0.0)
+                else:
+                    chunk.append(0.95 * vol * g
+                                 * math.sin(2 * math.pi * freq * (i + k) / self.rate))
+            self._gain = g
             i += block
             try:
                 self._proc.stdin.write(pcm16(chunk))
@@ -166,83 +192,3 @@ class Sidetone:
             wait = deadline - time.monotonic()
             if wait > 0:
                 time.sleep(wait)
-
-
-class CwAudioDecoder(threading.Thread):
-    """Rileva i click del tasto e decodifica in dit/dah + testo."""
-
-    def __init__(self, rate=RATE, device=DEVICE, on_key=None, on_char=None):
-        super().__init__(daemon=True)
-        self.rate = rate
-        self.device = device
-        self.on_key = on_key
-        self.on_char = on_char
-        self.block = 256  # 5.3 ms a 48 kHz: buona risoluzione per il timing
-        self._stop = threading.Event()
-
-    def start_stream(self):
-        try:
-            self._proc = subprocess.Popen(
-                ["arecord", "-q", "-D", self.device, "-f", FORMAT,
-                 "-r", str(self.rate), "-c", "1"],
-                stdout=subprocess.PIPE)
-            return True
-        except OSError:
-            return False
-
-    def run(self):
-        if not self.start_stream():
-            return
-        step = 2
-        key = False
-        t_down = 0.0
-        cooldown = 0.0
-        ambient = 0.001
-        thr = 0.25
-        self._unit = 0.06  # ~20 wpm iniziale
-        self._marks = []
-        self._buf = ""
-        self._off_at = 0.0
-        n = self.block
-        while not self._stop.is_set():
-            raw = self._proc.stdout.read(n * step)
-            if len(raw) < n * step:
-                break
-            mx = 0.0
-            for i in range(0, len(raw), 2):
-                a = abs(int.from_bytes(raw[i:i + 2], "little", signed=True) / 32768.0)
-                if a > mx:
-                    mx = a
-            now = time.monotonic()
-            # adatta la soglia al rumore di fondo
-            if mx < thr:
-                ambient = 0.95 * ambient + 0.05 * mx
-                thr = max(0.2, ambient * 6)
-            if mx > thr and now > cooldown:
-                cooldown = now + 0.025  # un click = un solo evento
-                key = not key
-                if key:
-                    t_down = now
-                    if self.on_key:
-                        self.on_key(True)
-                else:
-                    dur = now - t_down
-                    self._off_at = now
-                    self._marks.append(dur)
-                    if len(self._marks) > 30:
-                        self._marks.pop(0)
-                    if self._marks:
-                        self._unit = max(0.02, min(0.3,
-                            sorted(self._marks)[len(self._marks) // 2]))
-                    self._buf += "-" if dur >= 2 * self._unit else "."
-                    if self.on_key:
-                        self.on_key(False)
-            # pausa lettera: 3 unita' con il tasto su
-            if self._buf and not key and now - self._off_at > 3 * self._unit:
-                if self.on_char:
-                    self.on_char(self._buf)
-                self._buf = ""
-            time.sleep(0.001)
-
-    def stop(self):
-        self._stop.set()
