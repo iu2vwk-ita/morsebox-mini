@@ -1,69 +1,70 @@
-# MorseBox Mini — WiFi CW Trainer
+# MorseBox Mini — Trainer CW via WiFi
 
-A Morse keyer in a box. A Raspberry Pi (4, 5, Zero 2 W or similar) serves a web page over its own WiFi.
-Join the network, open the page, key with a real paddle or the touch paddle on
-screen, and read back your keying as text. The sidetone comes straight off the
-GPIO pins with zero lag, on up to three piezo buzzers at once.
+Un keyer Morse in una scatola. Un Raspberry Pi (4, 5, Zero 2 W o simili) espone
+una pagina web sulla propria rete WiFi. Collegati alla rete, apri la pagina,
+trasmetti con un paddle vero o con quello touch sullo schermo, e rileggi la tua
+manipolazione come testo. Il sidetone esce diretto dai pin GPIO a latenza zero,
+su fino a tre buzzer piezo insieme.
 
-No dependencies. Plain Python 3 out of the box. No paddle handy? Touch mode
-works fine without one.
+Nessuna dipendenza. Solo Python 3, funziona subito. Niente paddle sottomano?
+Il modo touch va benissimo lo stesso.
 
-![MorseBox assembled](box.png)
+![MorseBox assemblato](box.png)
 
-## What it does
+## Cosa fa
 
-* Iambic A / B and straight key, 5 to 60 WPM, paddle reverse (DX⇄SX)
-* Live decoded text on the web page and on the optional MAX7219 LED matrix
-* Sidetone pitch (400 to 4000 Hz) and volume from the page, played on 1 to 3
-  piezos together (`--buzz-pins 24,25,12`)
-* Key with a paddle, a straight key, the on screen paddle, or the keyboard
-  (`Z` / `X` / space)
+* Iambico A / B e tasto verticale, 5–60 WPM, scambio paddle (DX⇄SX)
+* Testo decodificato in diretta sulla pagina web e sull'optional matrice LED MAX7219
+* Tono del sidetone (400–4000 Hz) e volume dalla pagina, su 1–3 piezo insieme
+  (`--buzz-pins 24,25,12`)
+* Manipola con paddle, tasto verticale, paddle touch o tastiera
+  (`Z` / `X` / spazio)
 
-![Web UI](screenshot-ui.png)
+![Interfaccia web](screenshot-ui.png)
 
-## Open the web UI
+## Apri la pagina web
 
-The Pi is the access point. No home router, no internet.
+Il Pi fa da access point. Niente router di casa, niente internet.
 
-1. Power the box, wait about 30 seconds
-2. Join the WiFi **`IU2VWK-MORSE`** (password `morse1234`). Your phone will say
-   connected without internet. That is normal, stay on it
-3. Open **`http://10.42.0.1`**
+1. Accendi la scatola, aspetta una trentina di secondi
+2. Collegati al WiFi **`IU2VWK-MORSE`** (password `morse1234`). Il telefono dirà
+   «connesso senza internet»: è normale, resta lì
+3. Apri **`http://10.42.0.1`**
 
-The lid has two QR codes: **WIFI** joins the network, **APP** opens the page.
-At home the box also works over Ethernet on port 80.
+Sul coperchio ci sono due QR: **WIFI** collega alla rete, **APP** apre la pagina.
+A casa la scatola funziona anche via Ethernet sulla porta 80.
 
 ## Hardware
 
-* Raspberry Pi (4, 5, Zero 2 W or similar) with power supply and microSD
-  loaded with Raspberry Pi OS Lite 64 bit
-* Paddle or straight key wired to the GPIO header. Contacts to GND, the
-  internal pull ups do the rest, no extra parts
-* 1 to 3 passive piezo buzzers (KY-006 3 pin modules)
-* Optional MAX7219 8x8 LED matrix. Shows WPM plus live decoded text
+* Raspberry Pi (4, 5, Zero 2 W o simili) con alimentatore e microSD
+  con Raspberry Pi OS Lite a 64 bit
+* Paddle o tasto verticale cablati sul connettore GPIO. Contatti verso GND,
+  le pull-up interne fanno il resto, nessun componente extra
+* Da 1 a 3 buzzer piezo passivi (moduli KY-006 a 3 pin)
+* Matrice LED MAX7219 8x8 opzionale. Mostra WPM più testo decodificato in diretta
 
-### Wiring (BCM numbers, key contacts to GND)
+### Cablaggio (numeri BCM, contatti tasti verso GND)
 
-| Function | GPIO | Header pin |
-|----------|------|------------|
+| Funzione | GPIO | Pin |
+|----------|------|-----|
 | DIT (paddle) | 17 | 11 |
 | DAH (paddle) | 27 | 13 |
-| Straight key | 22 | 15 |
+| Tasto verticale | 22 | 15 |
 | GND | — | 6, 9, 14… |
-| Piezo 1 signal | 24 | 18 |
-| Piezo 2 signal | 25 | 22 |
-| Piezo 3 signal | 12 | 32 |
+| Segnale piezo 1 | 24 | 18 |
+| Segnale piezo 2 | 25 | 22 |
+| Segnale piezo 3 | 12 | 32 |
 | MAX7219 DIN / CLK / CS | 10 / 11 / 8 | 19 / 23 / 24 |
 
-Each KY-006 module: `S` to its signal pin, `+` (middle) to 5V (pins 2/4),
-`−` to GND. All `5V` pins are one rail and all `GND` pins are one rail, so
-power wires can share. Each `S` needs its own GPIO. Default buzzer mode is
-`passive`. Got a self beeping active buzzer instead? Start with
-`--buzzer-mode active`.
+Ogni modulo KY-006: `S` al suo pin di segnale, `+` (centrale) a 5V (pin 2/4),
+`−` a GND. Tutti i pin `5V` sono un'unica linea e tutti i pin `GND` pure, quindi
+i fili di alimentazione si possono condividere. Ogni `S` vuole il suo GPIO.
+Il modo buzzer di default è `passive`. Hai invece un buzzer attivo che suona
+da solo? Avvia con `--buzzer-mode active`.
 
-<img src="piezo.png" alt="The three piezos wired in" width="751">
+<img src="piezo.png" alt="I tre piezo cablati" width="751">
 
-## Install
+## Installazione
 
 ```bash
 sudo apt install git -y
@@ -72,12 +73,11 @@ cd morsebox
 sudo bash install.sh
 ```
 
-That sets the hostname to `iu2vwk-morse`, installs the autostart service, and
-brings up the `IU2VWK-MORSE` access point (password `morse1234`, change it at
-the top of `install.sh` first if you like). From then on, power means trainer
-is on.
+Imposta l'hostname a `iu2vwk-morse`, installa il servizio di avvio automatico e
+attiva l'access point `IU2VWK-MORSE` (password `morse1234`, cambiala in cima a
+`install.sh` se vuoi). Da lì in poi, accendere = trainer acceso.
 
-Three buzzers:
+Tre buzzer:
 
 ```bash
 # /etc/systemd/system/iu2vwk-morse.service
@@ -105,15 +105,14 @@ AUX in parallelo allo speaker con partitore 1k/470 ohm + 10 uF in serie.
 Stessi tono/volume della pagina (si applicano a piezo + speaker insieme).
 Senza `--speaker` il comportamento è identico a `main`: niente si rompe.
 
-## Box and fair material
+## Scatola e materiale per la fiera
 
-* `qr-1-wifi.png` / `qr-2-pagina.png`. The **WIFI** and **APP** QR codes for
-  the lid
-* `qr-1-wifi.dxf` / `qr-2-pagina.dxf`. Same QRs as 2 mm geometry for laser
-  engraving in Autodesk Inventor
-* `screenshot-ui-phone.png`. How the page looks on a phone
-* `Morse Code BOX.3mf`. The box itself, ready to 3D print
+* `qr-1-wifi.png` / `qr-2-pagina.png`. I QR **WIFI** e **APP** per il coperchio
+* `qr-1-wifi.dxf` / `qr-2-pagina.dxf`. Stessi QR come geometria da 2 mm per
+  incisione laser in Autodesk Inventor
+* `screenshot-ui-phone.png`. Come si presenta la pagina sul telefono
+* `Morse Code BOX.3mf`. La scatola vera e propria, pronta da stampare in 3D
 
 73 de IU2VWK · Angelo — https://iu2vwk.com
 
-Thanks to Panko for the inspiration and the original [Simple CW Keyer](https://github.com/Panko74/Simple-CW-Keyer).
+Grazie a Panko per l'ispirazione e per l'originale [Simple CW Keyer](https://github.com/Panko74/Simple-CW-Keyer).
