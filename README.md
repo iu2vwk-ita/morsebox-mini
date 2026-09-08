@@ -1,6 +1,6 @@
 # MorseBox Mini — WiFi CW Trainer
 
-A Morse keyer in a box. A Raspberry Pi 4 serves a web page over its own WiFi.
+A Morse keyer in a box. A Raspberry Pi (4, 5, Zero 2 W or similar) serves a web page over its own WiFi.
 Join the network, open the page, key with a real paddle or the touch paddle on
 screen, and read back your keying as text. The sidetone comes straight off the
 GPIO pins with zero lag, on up to three piezo buzzers at once.
@@ -12,7 +12,7 @@ works fine without one.
 
 ## What it does
 
-* Iambic A / B and straight key, 5 to 40 WPM, paddle reverse (DX⇄SX)
+* Iambic A / B and straight key, 5 to 60 WPM, paddle reverse (DX⇄SX)
 * Live decoded text on the web page and on the optional MAX7219 LED matrix
 * Sidetone pitch (400 to 4000 Hz) and volume from the page, played on 1 to 3
   piezos together (`--buzz-pins 24,25,12`)
@@ -35,7 +35,7 @@ At home the box also works over Ethernet on port 80.
 
 ## Hardware
 
-* Raspberry Pi 4 (runs on Pi 5 and Zero 2 W too) with power supply and microSD
+* Raspberry Pi (4, 5, Zero 2 W or similar) with power supply and microSD
   loaded with Raspberry Pi OS Lite 64 bit
 * Paddle or straight key wired to the GPIO header. Contacts to GND, the
   internal pull ups do the rest, no extra parts
