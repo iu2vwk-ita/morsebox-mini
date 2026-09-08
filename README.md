@@ -85,6 +85,26 @@ ExecStart=/usr/bin/python3 /opt/iu2vwk-morse/server.py --port 80 --buzz-pins 24,
 sudo systemctl daemon-reload && sudo systemctl restart iu2vwk-morse
 ```
 
+## Versione B — speaker DAC + AUX (branch `vB-dac-sine`, idea di Gianluca)
+
+Seno su altoparlante con inviluppo 4 ms anti-click + AUX per il sidetone.
+Il piezo GPIO resta il timing (zero latenza per chi manipola), lo speaker
+è un monitor ambiente con ~30-80 ms di ritardo: a 60 WPM non si manipola
+ascoltando lo speaker, si manipola sul piezo.
+
+```bash
+git checkout vB-dac-sine
+python3 server.py --port 80 --speaker
+# DAC/USB o HAT I2S: prima lista i device, poi scegli
+aplay -l
+python3 server.py --port 80 --speaker --speaker-device plughw:CARD=sndrpihifiberry,DEV=0
+```
+
+Wiring: DAC/jack -> ampli PAM8403/PAM8302 -> altoparlante 4/8 ohm 3 W.
+AUX in parallelo allo speaker con partitore 1k/470 ohm + 10 uF in serie.
+Stessi tono/volume della pagina (si applicano a piezo + speaker insieme).
+Senza `--speaker` il comportamento è identico a `main`: niente si rompe.
+
 ## Box and fair material
 
 * `qr-1-wifi.png` / `qr-2-pagina.png`. The **WIFI** and **APP** QR codes for
