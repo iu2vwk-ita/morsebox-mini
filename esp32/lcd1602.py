@@ -181,6 +181,9 @@ class Screen:
                 await self._boot_scroll(BOOT_HELP)
             except Exception:
                 pass
+        # the boot scroll wrote directly to the LCD: force a full redraw
+        self._last1 = self._last2 = None
+        self._dirty = True
         while True:
             if self._dirty:
                 self._dirty = False
