@@ -156,8 +156,11 @@ class Exercise:
             if self._pos >= len(self._target):
                 self._answer = self._target
                 self._got = True
+            else:
+                self._show()       # move the cursor (one write per letter)
         else:
             self._pos = 0          # wrong letter: start the target over
+            self._show()
             self._replay = True    # and replay it so the student hears it again
 
     # ---------------------------------------------------------- helpers
@@ -169,9 +172,9 @@ class Exercise:
     def _show(self):
         if not self.screen or not hasattr(self.screen, "set_exercise"):
             return
-        total = len(self.targets)
-        line1 = "%s %d/%d" % (self.name, self.index + 1, total)
-        self.screen.set_exercise(line1, self._target)
+        # line 1: the whole target, line 2: a static cursor under the letter
+        # to key next (no blinking, so the I2C is written only when it moves)
+        self.screen.set_exercise(self._target, " " * self._pos + "^")
 
     async def _play(self, text):
         if not self.sidetone:

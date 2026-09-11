@@ -156,8 +156,11 @@ class Exercise(threading.Thread):
             if self._pos >= len(self._target):
                 self._answer = self._target
                 self._got = True
+            else:
+                self._show()
         else:
             self._pos = 0
+            self._show()
             self._replay = True
 
     # ---------------------------------------------------------- helpers
@@ -169,9 +172,7 @@ class Exercise(threading.Thread):
     def _show(self):
         if not self.screen or not hasattr(self.screen, "set_exercise"):
             return
-        total = len(self.targets)
-        line1 = "%s %d/%d" % (self.name, self.index + 1, total)
-        self.screen.set_exercise(line1, self._target)
+        self.screen.set_exercise(self._target, " " * self._pos + "^")
 
     def _play(self, text):
         if not self.sidetone:
