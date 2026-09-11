@@ -139,8 +139,8 @@ The same trainer also runs on a classic **ESP32** with **MicroPython**. Code in
 
   ![MorseBox ESP32 without LCD](box-noscreen.png)
 
-The **`CW BOX SMALL.3mf`** file already includes a **second print plate** with
-the no-screen model, so both versions can be printed from the same file.
+The **`CW BOX SMALL.3mf`** file includes **both ESP32 variants** (with and
+without LCD) and the **Raspberry Pi** version, each on its own print plate.
 
 ## Box and fair material
 
@@ -149,7 +149,8 @@ the no-screen model, so both versions can be printed from the same file.
 * `qr-1-wifi.dxf` / `qr-2-pagina.dxf`. Same QRs as 2 mm geometry for laser
   engraving in Autodesk Inventor
 * `screenshot-ui-phone.png`. How the page looks on a phone
-* `CW BOX SMALL.3mf`. The box itself, ready to 3D print
+* `CW BOX SMALL.3mf`. The box, ready to 3D print — all versions on separate
+  plates: ESP32 with LCD, ESP32 without LCD, and Raspberry Pi
 
 73 de IU2VWK · Angelo — https://iu2vwk.com
 
