@@ -6,7 +6,7 @@ import uasyncio as asyncio
 from morse import MORSE
 
 LINE1 = "KAPPAROGGERO"
-LINE2 = "POSITVO"
+LINE2 = "POSITIVO"
 TEXT = LINE1 + " " + LINE2
 
 
