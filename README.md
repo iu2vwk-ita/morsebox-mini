@@ -8,6 +8,11 @@ GPIO pins with zero lag, on up to three piezo buzzers at once.
 No dependencies. Plain Python 3 out of the box. No paddle handy? Touch mode
 works fine without one.
 
+> **Two versions in this repository**
+> * **Raspberry Pi** — original version, files in the root (`server.py`, `install.sh`, …)
+> * **ESP32 / MicroPython** — port in the [`esp32/`](esp32/) folder, with LCD1602 I2C support.
+>   Wiring and setup: [`esp32/README-ESP32.md`](esp32/README-ESP32.md)
+
 ![MorseBox assembled](box.png)
 
 ## What it does
@@ -85,6 +90,19 @@ ExecStart=/usr/bin/python3 /opt/iu2vwk-morse/server.py --port 80 --buzz-pins 24,
 sudo systemctl daemon-reload && sudo systemctl restart iu2vwk-morse
 ```
 
+## ESP32 / MicroPython version
+
+The same trainer also runs on a classic **ESP32** with **MicroPython**. Code in
+[`esp32/`](esp32/), full guide in [`esp32/README-ESP32.md`](esp32/README-ESP32.md).
+
+* Native access point **`IU2VWK-MORSE`** (password `morse1234`), web UI on
+  **`http://10.42.0.1`** — same interface as the Pi version
+* Paddle on **GPIO32/33**, straight key on **GPIO14**, zero-latency PWM sidetone
+  on **GPIO25/26/27**
+* Optional **LCD1602 I2C** display: line 1 `WPM xx` + keyer mode, line 2 the
+  decoded CW text
+* Deploy with `mpremote`: `cd esp32 && bash deploy.sh <port>`
+
 ## Box and fair material
 
 * `qr-1-wifi.png` / `qr-2-pagina.png`. The **WIFI** and **APP** QR codes for
@@ -92,7 +110,7 @@ sudo systemctl daemon-reload && sudo systemctl restart iu2vwk-morse
 * `qr-1-wifi.dxf` / `qr-2-pagina.dxf`. Same QRs as 2 mm geometry for laser
   engraving in Autodesk Inventor
 * `screenshot-ui-phone.png`. How the page looks on a phone
-* `Morse Code BOX.3mf`. The box itself, ready to 3D print
+* `CW BOX SMALL.3mf`. The box itself, ready to 3D print
 
 73 de IU2VWK · Angelo — https://iu2vwk.com
 

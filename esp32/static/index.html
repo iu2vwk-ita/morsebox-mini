@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0b0f16">
+<title>IU2VWK · Morse Simulator</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header class="top">
+  <div class="brand">
+    <div class="morse-mark" aria-hidden="true"><span></span><span class="d"></span><span></span></div>
+    <div>
+      <h1>IU2VWK <em>Morse Simulator</em></h1>
+      <p id="hostLine">…</p>
+    </div>
+  </div>
+  <div class="conn"><span id="connDot" class="dot off"></span><span id="connTxt">connecting…</span></div>
+</header>
+
+<main>
+  <section class="panel screen">
+    <div class="screen-head">
+      <span class="tag">RX · CW <span id="wpmEcho"></span></span>
+      <button id="clearTxt" class="ghost" type="button">clear</button>
+    </div>
+    <div id="decoded" class="decoded" aria-live="off"></div>
+  </section>
+
+  <section class="panel keymon">
+    <div class="lamp-wrap">
+      <div class="lamp" id="lamp"></div>
+      <div class="lamp-cap">KEYING</div>
+    </div>
+    <div class="paddle-vis" aria-hidden="true">
+      <div class="lever left" id="leverL"><i></i><b></b></div>
+      <div class="pivot"></div>
+      <div class="lever right" id="leverR"><i></i><b></b></div>
+    </div>
+    <div class="pad-labels"><span id="labL">DIT · L</span><span id="labR">DAH · R</span></div>
+  </section>
+
+  <section class="panel controls">
+    <div class="wpm-row">
+      <button id="wpmDown" class="step" type="button" aria-label="slower">−</button>
+      <div class="wpm-num"><b id="wpmVal">20</b><span>WPM</span></div>
+      <button id="wpmUp" class="step" type="button" aria-label="faster">+</button>
+    </div>
+    <input id="wpmSlider" type="range" min="5" max="60" step="1" value="20" aria-label="speed in WPM">
+    <div class="ctl-grid">
+      <button id="revBtn" class="toggle" type="button" aria-pressed="false">
+        <span class="t-label">PADDLE REVERSE</span>
+        <span class="t-state" id="revState">normal</span>
+      </button>
+      <div class="seg" role="group" aria-label="keyer mode">
+        <button type="button" data-mode="iambic-a">IAMBIC A</button>
+        <button type="button" data-mode="iambic-b" class="on">IAMBIC B</button>
+        <button type="button" data-mode="straight">STRAIGHT</button>
+      </div>
+    </div>
+    <div class="sliders">
+      <label>TONE <b id="toneVal">650 Hz</b>
+        <input id="toneSlider" type="range" min="400" max="4000" step="10" value="650">
+      </label>
+      <label>VOLUME <b id="volVal">70%</b>
+        <input id="volSlider" type="range" min="0" max="100" step="1" value="70">
+      </label>
+    </div>
+  </section>
+
+  <section class="panel touch" id="touchPanel">
+    <div class="touch-row">
+      <button id="padL" class="pad" type="button"><b id="padLT">DIT</b><span>L · Z</span></button>
+      <button id="padR" class="pad" type="button"><b id="padRT">DAH</b><span>R · X</span></button>
+    </div>
+    <button id="straightKey" class="skey" type="button"><b>STRAIGHT KEY</b><span>hold · space bar</span></button>
+  </section>
+</main>
+
+<footer>
+  <span>73 de IU2VWK · Angelo</span>
+  <span id="gpioLine"></span>
+</footer>
+
+<script src="app.js"></script>
+</body>
+</html>
