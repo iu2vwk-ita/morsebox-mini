@@ -64,12 +64,18 @@ def main():
             screen = None
 
     def on_settings(data):
-        if screen:
-            screen.set_wpm(data.get("wpm", 20))
-            if hasattr(screen, "set_mode"):
-                screen.set_mode(data.get("mode", "iambic-b"))
-        sidetone.set_freq(data.get("tone", 650))
-        sidetone.set_volume(data.get("volume", 70))
+        try:
+            if screen:
+                screen.set_wpm(data.get("wpm", 20))
+                if hasattr(screen, "set_mode"):
+                    screen.set_mode(data.get("mode", "iambic-b"))
+        except Exception:
+            pass
+        try:
+            sidetone.set_freq(data.get("tone", 650))
+            sidetone.set_volume(data.get("volume", 70))
+        except Exception:
+            pass
 
     on_settings(settings.get())
     print("free RAM:", gc.mem_free())

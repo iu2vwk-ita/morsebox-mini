@@ -110,9 +110,12 @@ class WebServer:
                 patch = json.loads(body.decode("utf-8") or "{}")
             except ValueError:
                 patch = {}
-            data = self.settings.patch(patch)
-            if self.on_settings:
-                self.on_settings(data)
+            try:
+                data = self.settings.patch(patch)
+                if self.on_settings:
+                    self.on_settings(data)
+            except Exception:
+                data = self.settings.get()
             self.hub.broadcast({"t": "settings", "settings": data})
             await self._json(writer, data)
         else:
@@ -183,14 +186,21 @@ class WebServer:
                     self.hub.hold(client, msg.get("dit"), msg.get("dah"),
                                   msg.get("key"))
                 elif msg.get("t") == "settings":
-                    data = self.settings.patch(msg)
-                    if self.on_settings:
-                        self.on_settings(data)
-                    # do not echo back to the sender: the sender already shows
-                    # its own value and the echo would fight the slider
-                    self.hub.broadcast({"t": "settings", "settings": data},
-                                       exclude=client)
+                    # a bad setting (e.g. a PWM that refuses a frequency) must
+                    # never tear down the WebSocket: catch it and keep going
+                    try:
+                        data = self.settings.patch(msg)
+                        if self.on_settings:
+                            self.on_settings(data)
+                        # do not echo back to the sender: the sender already
+                        # shows its own value and the echo fights the slider
+                        self.hub.broadcast({"t": "settings", "settings": data},
+                                           exclude=client)
+                    except Exception:
+                        pass
         except (OSError, EOFError):
+            pass
+        except Exception:
             pass
         finally:
             client.closed = True

@@ -41,7 +41,13 @@ class Sidetone:
         try:
             pwm.duty_u16(d)
         except AttributeError:
-            pwm.duty(d >> 6)   # 16 bit -> 10 bit (0..1023)
+            try:
+                pwm.duty(d >> 6)   # 16 bit -> 10 bit (0..1023)
+            except Exception:
+                pass
+        except Exception:
+            # a dead/deinited PWM must never crash the caller
+            pass
 
     def _apply(self):
         if not self._pwms:
@@ -53,7 +59,10 @@ class Sidetone:
             # passive piezo: 50% square wave * volume
             d = int(32768 * self.volume) if self._on else 0
         for pwm in self._pwms:
-            self._set_duty(pwm, d)
+            try:
+                self._set_duty(pwm, d)
+            except Exception:
+                pass
 
     # ------------------------------------------------------------ API
     def set(self, on):
@@ -61,29 +70,38 @@ class Sidetone:
         self._apply()
 
     def set_freq(self, f):
+        try:
+            self._set_freq(f)
+        except Exception:
+            # never let a tone change take down the caller (web server)
+            pass
+
+    def _set_freq(self, f):
         f = int(f)
         if f == self.freq:
             return
-        ok = False
+        applied = 0
         for i, pwm in enumerate(self._pwms):
             try:
                 pwm.freq(f)
-                ok = True
+                applied += 1
                 continue
             except Exception:
                 pass
-            # fallback: rebuild this PWM at the new frequency
+            # fallback: build the replacement FIRST, only then release the old
+            # one. If the rebuild fails we keep the old PWM (still working at
+            # the previous frequency) instead of leaving a dead object here.
+            new = self._make_pwm(self._pins[i], f)
+            if new is None:
+                continue
             try:
                 pwm.deinit()
             except Exception:
                 pass
-            new = self._make_pwm(self._pins[i], f)
-            if new is not None:
-                self._pwms[i] = new
-                ok = True
-        # only remember the new frequency if we actually applied it, otherwise
-        # a failed change would leave the sidetone stuck on the old note
-        if ok:
+            self._pwms[i] = new
+            applied += 1
+        # only remember the new frequency if at least one pin accepted it
+        if applied:
             self.freq = f
         self._apply()
 

@@ -15,6 +15,8 @@ time.ticks_diff = lambda a, b: a - b
 import keyer          # noqa: E402
 import wsproto        # noqa: E402
 import webserver      # noqa: E402
+import machine as machine_mod      # noqa: E402
+import sidetone as sidetone_mod    # noqa: E402
 
 webserver.STATIC_DIR = os.path.join(PROJECT, "static")
 import settings as settings_mod  # noqa: E402
@@ -371,6 +373,28 @@ async def main():
     # ---- 8. morse table
     assert FROM_MORSE[".-"] == "A" and FROM_MORSE["..."] == "S"
     print("PASS morse FROM_MORSE")
+
+    # ---- 8b. sidetone robustness: a PWM that refuses a frequency change
+    machine_mod.PWM.fail_freq = False
+    machine_mod.PWM.fail_ctor = False
+    st = sidetone_mod.Sidetone([25, 26, 27], freq=650)
+    assert len(st._pwms) == 3 and st._ok
+    st.set_freq(700)
+    assert st.freq == 700 and not any(p.deinited for p in st._pwms)
+    # freq() fails AND the rebuild fails: keep the old PWM, never crash
+    machine_mod.PWM.fail_freq = True
+    machine_mod.PWM.fail_ctor = True
+    st.set_freq(800)                       # must not raise
+    assert st.freq == 700                  # not applied, old note kept
+    assert len(st._pwms) == 3 and not any(p.deinited for p in st._pwms)
+    st.set(True)
+    st.set(False)                          # must not raise on a stuck PWM
+    # freq() fails but the rebuild works: the new note is applied
+    machine_mod.PWM.fail_ctor = False
+    st.set_freq(850)
+    assert st.freq == 850 and not any(p.deinited for p in st._pwms)
+    machine_mod.PWM.fail_freq = False
+    print("PASS sidetone robustness (freq fallback)")
 
     # ---- 9. web server: parsing, routes, WS handshake
     class FakeWriter:
