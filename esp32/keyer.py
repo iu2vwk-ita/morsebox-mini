@@ -57,6 +57,7 @@ class Keyer:
                 self.easter.fire()
 
     def _flush_letter(self):
+        self._dot_run = 0          # the 10-dot run must be within one letter
         if self._buf:
             buf = self._buf
             ch = FROM_MORSE.get(buf, "\u25c7")
