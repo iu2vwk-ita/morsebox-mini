@@ -1,12 +1,18 @@
-# CW-School / MorseBox exercise mode.
+# MorseBox exercise mode.
 #
-# Start by keying TEST (full drill) or TEST1..TEST9. The device SHOWS the
-# target on the LCD and PLAYS it on the piezo (always both, together), then
-# waits for the student to key it back.
+# Open the menu with SOS, then pick a drill with N dots and confirm with "..":
+#   SOS                  = open the menu
+#   . .. ... ...         = choose exercise 1..9 (a single dash = full drill)
+#   ..                   = confirm / start
+#   --                   = exit the menu
+# During a drill:
+#   ......  (6 dots)     = STOP
+#   ------  (6 dashes)   = SKIP
 #
-# Controls (keyed, not valid characters):
-#   ......  (6 dots)   = STOP
-#   ------  (6 dashes) = SKIP
+# The device SHOWS the target on the LCD and PLAYS it on the piezo (always
+# both, together) at the chosen WPM, then waits for the student to key it back.
+# For multi-letter targets the whole word is shown and the letter to key blinks.
+# You can also start directly with TEST (full drill) or TEST1..TEST9.
 import random
 import time
 import uasyncio as asyncio
@@ -23,9 +29,6 @@ PUNCT = [".", ",", "?", "/", "=", "+", "AR", "SK", "BT"]
 NAMES = {0: "FULL", 1: "ALPHABET", 2: "NUMBERS", 3: "KOCH",
          4: "LETTERS", 5: "DIGITS", 6: "MIXED", 7: "CALLSIGNS",
          8: "ABBREV", 9: "PUNCT"}
-
-STOP_SEQ = "......"
-SKIP_SEQ = "------"
 
 
 def build(n):
@@ -70,7 +73,6 @@ class Exercise:
         self.index = 0
         self.score = 0
         self._target = ""
-        self._typed = ""
         self._answer = None
         self._got = False
         self._pos = 0              # current character inside the target
@@ -121,7 +123,6 @@ class Exercise:
         self.name = NAMES.get(n, "EX")
         self.index = 0
         self.score = 0
-        self._typed = ""
         self._answer = None
         self._got = False
         self.active = True
@@ -237,7 +238,6 @@ class Exercise:
                 await asyncio.sleep_ms(100)
                 continue
             self._target = self.targets[self.index]
-            self._typed = ""
             self._pos = 0
             self._blink = True
             self._answer = None

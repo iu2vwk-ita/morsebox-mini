@@ -118,6 +118,29 @@ In `config.py`:
 The WPM, tone, volume, mode and reverse settings are saved in `settings.json`
 and persist across reboots.
 
+## Module reference
+
+| Module | Main entry points | What it does |
+|---|---|---|
+| `main.py` | `main()` | Boot: AP, settings, paddle, piezo, display, event loop |
+| `config.py` | constants | Pin map, defaults, boot messages |
+| `wifi_ap.py` | `start_ap()` | Creates the `IU2VWK-MORSE` access point |
+| `gpio.py` | `Paddle.read()` | Reads DIT / DAH / STRAIGHT (active low, pull-up) |
+| `sidetone.py` | `Sidetone.set()`, `set_freq()`, `set_volume()` | Zero-latency PWM on 1-3 piezos |
+| `keyer.py` | `Keyer.run()` | Iambic A/B + straight state machine and CW decoder |
+| `keyer.py` | `_set_key()`, `_flush_letter()`, `_check_exercise_trigger()`, `_menu_select()` | Key output, letter decoding, exercise triggers and menu |
+| `exercise.py` | `build(n)` | Builds the target list for drill `n` (0..9) |
+| `exercise.py` | `Exercise.enter_menu()`, `select()`, `confirm()`, `cancel()`, `start()`, `feed()`, `run()` | Menu, confirmation, per-letter progress, blinking target, playback |
+| `hub.py` | `Hub.broadcast()`, `remote()`, `hold()` | WebSocket clients, remote paddle holds, text history |
+| `wsproto.py` | `ws_accept()`, `ws_encode()`, `ws_read_frame()` | Minimal RFC 6455 WebSocket |
+| `webserver.py` | `WebServer.start()` | HTTP routes + WebSocket upgrade (native sockets) |
+| `lcd1602.py` | `I2cLcd`, `Screen` | 16x2 I2C display: WPM/mode, decoded text, exercise target |
+| `display.py` | `Max7219`, `Screen` | Optional 8x8 matrix (scrolling text) |
+| `settings.py` | `Settings.get()`, `patch()` | Persistent settings on `settings.json` |
+| `morse.py` | `MORSE`, `FROM_MORSE` | Morse table and its reverse |
+| `tests/test_all.py` | — | 18 host-side tests (CPython, `uasyncio`/`time` stubs) |
+| `tests/selftest_device.py` | — | On-device self-test: AP, GPIO, PWM, HTTP, WS, keyer |
+
 ## Differences from the Pi version
 
 | | Raspberry Pi | ESP32 MicroPython |
