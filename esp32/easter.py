@@ -7,7 +7,8 @@ from morse import MORSE
 
 LINE1 = "IU2VWK MORSE BOX - il tuo allenatore CW   "
 LINE2 = "SOS: corsi   1 punto: gioco   73 de IU2VWK   "
-TUNE = "73"
+# Played in Morse while the text scrolls (space = pause).
+TUNE = "IU2VWK MORSE BOX 73"
 COLS = 16
 STEP_MS = 200
 
@@ -70,18 +71,30 @@ class EasterEgg:
                 await asyncio.sleep_ms(unit)
             await asyncio.sleep_ms(2 * unit)
 
+    async def _scroll(self):
+        """Keep scrolling both lines until cancelled."""
+        n = max(len(LINE1), len(LINE2)) + COLS
+        i = 0
+        while True:
+            self._set_window(i)
+            i = (i + 1) % n
+            await asyncio.sleep_ms(STEP_MS)
+
     async def _show_and_play(self):
         self.playing = True
+        scroll = asyncio.create_task(self._scroll())
         try:
             self._set_window(0)
             if self.sidetone:
-                await self._play_tune()
-            # scroll both lines for one full pass
-            n = max(len(LINE1), len(LINE2)) + COLS
-            for i in range(n):
-                self._set_window(i)
-                await asyncio.sleep_ms(STEP_MS)
+                await self._play_tune()          # sound + text together
+            else:
+                await asyncio.sleep_ms(
+                    STEP_MS * (max(len(LINE1), len(LINE2)) + COLS))
         finally:
+            try:
+                scroll.cancel()
+            except Exception:
+                pass
             if self.sidetone:
                 self.sidetone.set(False)
             self.playing = False
