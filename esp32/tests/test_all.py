@@ -227,6 +227,44 @@ async def main():
     assert ex.menu is False and ex.pending is None
     print("PASS exercise: SOS menu + select + ..confirm / --exit")
 
+    # ---- 3c. exercise feed: split STOP/SKIP still detected
+    import exercise as exmod
+
+    class _S:
+        def get(self):
+            return {"wpm": 20}
+
+    class _H:
+        def broadcast(self, m):
+            pass
+
+    exr = exmod.Exercise(_S(), _H())
+    exr.start(1)
+    exr._target = "A"
+    exr.feed("S", "...")                 # first half: consumed as an answer
+    exr._got = False
+    exr._answer = None
+    exr._typed = ""
+    exr.feed("S", "...")                 # second half -> STOP
+    assert exr._answer == "__STOP__", exr._answer
+
+    exr2 = exmod.Exercise(_S(), _H())
+    exr2.start(1)
+    exr2._target = "A"
+    exr2.feed("O", "---")
+    exr2._got = False
+    exr2._answer = None
+    exr2._typed = ""
+    exr2.feed("O", "---")                # second half -> SKIP
+    assert exr2._answer == "__SKIP__", exr2._answer
+
+    exr3 = exmod.Exercise(_S(), _H())
+    exr3.start(2)
+    exr3._target = "5"
+    exr3.feed("5", ".....")              # 5 dots is an answer, not STOP
+    assert exr3._answer == "5", exr3._answer
+    print("PASS exercise feed: split STOP/SKIP + 5-dot answer")
+
     # ---- 4. WS accept (RFC 6455 vector)
     acc = wsproto.ws_accept("dGhlIHNhbXBsZSBub25jZQ==")
     assert acc == "s3pPLMBiTxaQ9kYGzzhZRbK+xOo=", acc

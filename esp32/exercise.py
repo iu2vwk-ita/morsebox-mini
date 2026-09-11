@@ -73,6 +73,9 @@ class Exercise:
         self._typed = ""
         self._answer = None
         self._got = False
+        self._run_char = None      # last run of dots/dashes (for STOP/SKIP)
+        self._run_len = 0
+        self._run_at = 0
 
     # ---------------------------------------------------------- control
     def enter_menu(self):
@@ -123,17 +126,38 @@ class Exercise:
         self._broadcast()
 
     def feed(self, ch, buf):
-        """Called by the keyer on every decoded letter while active."""
+        """Called by the keyer on every decoded letter while active.
+
+        STOP/SKIP are counted as a RUN of dots/dashes, so they still work when
+        the decoder splits 6 elements into two groups (e.g. '...' + '...').
+        """
         if not self.active:
             return
-        if buf == STOP_SEQ:
-            self._answer = "__STOP__"
-            self._got = True
-            return
-        if buf == SKIP_SEQ:
-            self._answer = "__SKIP__"
-            self._got = True
-            return
+        now = time.ticks_ms()
+        c = None
+        if buf:
+            s = set(buf)
+            if s == {"."}:
+                c = "."
+            elif s == {"-"}:
+                c = "-"
+        if c:
+            if self._run_char == c and time.ticks_diff(now, self._run_at) < 1500:
+                self._run_len += len(buf)
+            else:
+                self._run_char, self._run_len = c, len(buf)
+            self._run_at = now
+            if c == "." and self._run_len >= 6:
+                self._answer = "__STOP__"
+                self._got = True
+                return
+            if c == "-" and self._run_len >= 6:
+                self._answer = "__SKIP__"
+                self._got = True
+                return
+        else:
+            self._run_char = None
+            self._run_len = 0
         self._typed += ch
         if len(self._typed) >= len(self._target):
             self._answer = self._typed
@@ -215,10 +239,15 @@ class Exercise:
                 continue
             if ans == "__SKIP__":
                 self.index += 1
+                self._run_char = None
+                self._run_len = 0
             elif ans and ans.upper() == self._target.upper():
                 self.score += 1
                 self.index += 1
-            # wrong answer: repeat the same target
+                self._run_char = None
+                self._run_len = 0
+            # wrong answer: repeat the same target (keep the dot/dash run so a
+            # STOP/SKIP split across two groups still accumulates)
 
             if self.index >= len(self.targets):
                 self.active = False
