@@ -677,8 +677,8 @@ async def main():
 
     # ---- 16. easter egg: 2-line scrolling message
     import easter as egmod
-    assert egmod._window("ABCDEFGHIJKLMNOP", 0) == "ABCDEFGHIJKLMNOP"
-    assert egmod._window("ABCDEFGHIJKLMNOP", 1) == "BCDEFGHIJKLMNOPQ"
+    assert egmod._window("ABCDEFGHIJKLMNOPQRSTUVWXYZ", 0) == "ABCDEFGHIJKLMNOP"
+    assert egmod._window("ABCDEFGHIJKLMNOPQRSTUVWXYZ", 1) == "BCDEFGHIJKLMNOPQ"
     eg = egmod.EasterEgg(_S(), screen=None)
     eg._set_window(3)              # no screen -> must not crash
     eg._clear()
