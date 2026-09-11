@@ -79,9 +79,6 @@ class Exercise(threading.Thread):
         self._pos = 0
         self._flash_pos = None
         self._flash_until = 0
-        self._run_char = None
-        self._run_len = 0
-        self._run_at = 0
         self._menu_at = 0
         self._stop = threading.Event()
 
@@ -129,42 +126,30 @@ class Exercise(threading.Thread):
         self._answer = None
         self._got = False
         self.active = True
+        if hasattr(self.hub, "clear_text"):
+            self.hub.clear_text()
         self._broadcast()
 
     def feed(self, ch, buf):
         """Called by the keyer on every decoded letter while active.
 
-        STOP/SKIP are counted as a RUN of dots/dashes, so they still work when
-        the decoder splits 6 elements into two groups (e.g. '...' + '...').
+        STOP/SKIP must be a single group of 6+ dots / dashes, so they are not
+        confused with repeated short answers (e.g. two wrong 'S').
         """
         if not self.active:
             return
-        now = time.monotonic()
-        c = None
         if buf:
             s = set(buf)
-            if s == {"."}:
-                c = "."
-            elif s == {"-"}:
-                c = "-"
-        if c:
-            if self._run_char == c and now - self._run_at < 1.5:
-                self._run_len += len(buf)
-            else:
-                self._run_char, self._run_len = c, len(buf)
-            self._run_at = now
-            if c == "." and self._run_len >= 6:
+            if s == {"."} and len(buf) >= 6:
                 self._answer = "__STOP__"
                 self._got = True
                 return
-            if c == "-" and self._run_len >= 6:
+            if s == {"-"} and len(buf) >= 6:
                 self._answer = "__SKIP__"
                 self._got = True
                 return
-        else:
-            self._run_char = None
-            self._run_len = 0
         # per-character progress: key the target one letter at a time
+        now = time.monotonic()
         if self._pos < len(self._target) and ch and \
                 ch.upper() == self._target[self._pos].upper():
             self._flash_pos = self._pos
@@ -232,52 +217,58 @@ class Exercise(threading.Thread):
             self.screen.clear_exercise()
 
     # ---------------------------------------------------------- thread
+    def _tick(self):
+        if not self.active:
+            if self.menu and time.monotonic() - self._menu_at > 8:
+                self.menu = False
+                self._clear()
+            time.sleep(0.1)
+            return
+        self._target = self.targets[self.index]
+        self._pos = 0
+        self._flash_pos = None
+        self._answer = None
+        self._got = False
+        self._show()
+        self._play(self._target)
+
+        while self.active and not self._got and not self._stop.is_set():
+            self._show()
+            time.sleep(0.08)
+        if not self.active:
+            return
+
+        ans = self._answer
+        if ans == "__STOP__":
+            self.active = False
+            self._finish()
+            time.sleep(3)
+            self._clear()
+            return
+        if ans == "__SKIP__":
+            self.index += 1
+        elif ans and ans.upper() == self._target.upper():
+            self.score += 1
+            self.index += 1
+
+        if self.index >= len(self.targets):
+            self.active = False
+            self._finish()
+            time.sleep(3)
+            self._clear()
+        else:
+            self._broadcast()
+
     def run(self):
         while not self._stop.is_set():
-            if not self.active:
-                if self.menu and time.monotonic() - self._menu_at > 8:
-                    self.menu = False
-                    self._clear()
-                time.sleep(0.1)
-                continue
-            self._target = self.targets[self.index]
-            self._pos = 0
-            self._flash_pos = None
-            self._answer = None
-            self._got = False
-            self._show()
-            self._play(self._target)
-
-            while self.active and not self._got and not self._stop.is_set():
-                self._show()
-                time.sleep(0.08)
-            if not self.active:
-                continue
-
-            ans = self._answer
-            if ans == "__STOP__":
+            try:
+                self._tick()
+            except Exception as e:
+                print("exercise error:", e)
                 self.active = False
-                self._finish()
-                time.sleep(3)
+                self.menu = False
                 self._clear()
-                continue
-            if ans == "__SKIP__":
-                self.index += 1
-                self._run_char = None
-                self._run_len = 0
-            elif ans and ans.upper() == self._target.upper():
-                self.score += 1
-                self.index += 1
-                self._run_char = None
-                self._run_len = 0
-
-            if self.index >= len(self.targets):
-                self.active = False
-                self._finish()
-                time.sleep(3)
-                self._clear()
-            else:
-                self._broadcast()
+                time.sleep(0.5)
 
     def stop(self):
         self._stop.set()

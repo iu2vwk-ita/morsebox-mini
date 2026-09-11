@@ -78,9 +78,6 @@ class Exercise:
         self._pos = 0              # current character inside the target
         self._flash_pos = None     # character just keyed (blinks as feedback)
         self._flash_until = 0
-        self._run_char = None      # last run of dots/dashes (for STOP/SKIP)
-        self._run_len = 0
-        self._run_at = 0
 
     # ---------------------------------------------------------- control
     def enter_menu(self):
@@ -127,42 +124,31 @@ class Exercise:
         self._answer = None
         self._got = False
         self.active = True
+        # clear the decoded text so the trigger does not fire again later
+        if hasattr(self.hub, "clear_text"):
+            self.hub.clear_text()
         self._broadcast()
 
     def feed(self, ch, buf):
         """Called by the keyer on every decoded letter while active.
 
-        STOP/SKIP are counted as a RUN of dots/dashes, so they still work when
-        the decoder splits 6 elements into two groups (e.g. '...' + '...').
+        STOP/SKIP must be a single group of 6+ dots / dashes, so they are not
+        confused with repeated short answers (e.g. two wrong 'S').
         """
         if not self.active:
             return
-        now = time.ticks_ms()
-        c = None
         if buf:
             s = set(buf)
-            if s == {"."}:
-                c = "."
-            elif s == {"-"}:
-                c = "-"
-        if c:
-            if self._run_char == c and time.ticks_diff(now, self._run_at) < 1500:
-                self._run_len += len(buf)
-            else:
-                self._run_char, self._run_len = c, len(buf)
-            self._run_at = now
-            if c == "." and self._run_len >= 6:
+            if s == {"."} and len(buf) >= 6:
                 self._answer = "__STOP__"
                 self._got = True
                 return
-            if c == "-" and self._run_len >= 6:
+            if s == {"-"} and len(buf) >= 6:
                 self._answer = "__SKIP__"
                 self._got = True
                 return
-        else:
-            self._run_char = None
-            self._run_len = 0
         # per-character progress: key the target one letter at a time
+        now = time.ticks_ms()
         if self._pos < len(self._target) and ch and \
                 ch.upper() == self._target[self._pos].upper():
             self._flash_pos = self._pos          # blink the letter just keyed
@@ -233,52 +219,58 @@ class Exercise:
             self.screen.clear_exercise()
 
     # ---------------------------------------------------------- task
+    async def _tick(self):
+        if not self.active:
+            if self.menu and time.ticks_diff(
+                    time.ticks_ms(), self._menu_at) > 8000:
+                self.menu = False
+                self._clear()
+            await asyncio.sleep_ms(100)
+            return
+        self._target = self.targets[self.index]
+        self._pos = 0
+        self._flash_pos = None
+        self._answer = None
+        self._got = False
+        self._show()
+        await self._play(self._target)
+
+        while self.active and not self._got:
+            self._show()
+            await asyncio.sleep_ms(120)
+        if not self.active:
+            return
+
+        ans = self._answer
+        if ans == "__STOP__":
+            self.active = False
+            self._finish()
+            await asyncio.sleep_ms(3000)
+            self._clear()
+            return
+        if ans == "__SKIP__":
+            self.index += 1
+        elif ans and ans.upper() == self._target.upper():
+            self.score += 1
+            self.index += 1
+        # wrong answer: repeat the same target
+
+        if self.index >= len(self.targets):
+            self.active = False
+            self._finish()
+            await asyncio.sleep_ms(3000)
+            self._clear()
+        else:
+            self._broadcast()
+
     async def run(self):
         while True:
-            if not self.active:
-                if self.menu and time.ticks_diff(
-                        time.ticks_ms(), self._menu_at) > 8000:
-                    self.menu = False
-                    self._clear()
-                await asyncio.sleep_ms(100)
-                continue
-            self._target = self.targets[self.index]
-            self._pos = 0
-            self._flash_pos = None
-            self._answer = None
-            self._got = False
-            self._show()
-            await self._play(self._target)
-
-            while self.active and not self._got:
-                self._show()
-                await asyncio.sleep_ms(120)
-            if not self.active:
-                continue
-
-            ans = self._answer
-            if ans == "__STOP__":
+            try:
+                await self._tick()
+            except Exception as e:
+                # never let an exercise error take the whole app down
+                print("exercise error:", e)
                 self.active = False
-                self._finish()
-                await asyncio.sleep_ms(3000)
+                self.menu = False
                 self._clear()
-                continue
-            if ans == "__SKIP__":
-                self.index += 1
-                self._run_char = None
-                self._run_len = 0
-            elif ans and ans.upper() == self._target.upper():
-                self.score += 1
-                self.index += 1
-                self._run_char = None
-                self._run_len = 0
-            # wrong answer: repeat the same target (keep the dot/dash run so a
-            # STOP/SKIP split across two groups still accumulates)
-
-            if self.index >= len(self.targets):
-                self.active = False
-                self._finish()
-                await asyncio.sleep_ms(3000)
-                self._clear()
-            else:
-                self._broadcast()
+                await asyncio.sleep_ms(500)

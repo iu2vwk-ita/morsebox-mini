@@ -241,22 +241,24 @@ async def main():
     exr = exmod.Exercise(_S(), _H())
     exr.start(1)
     exr._target = "A"
-    exr.feed("S", "...")                 # first half: consumed as an answer
-    exr._got = False
-    exr._answer = None
-    exr._typed = ""
-    exr.feed("S", "...")                 # second half -> STOP
+    exr.feed("?", "......")              # single group of 6 dots -> STOP
     assert exr._answer == "__STOP__", exr._answer
 
     exr2 = exmod.Exercise(_S(), _H())
     exr2.start(1)
     exr2._target = "A"
-    exr2.feed("O", "---")
-    exr2._got = False
-    exr2._answer = None
-    exr2._typed = ""
-    exr2.feed("O", "---")                # second half -> SKIP
+    exr2.feed("?", "------")             # single group of 6 dashes -> SKIP
     assert exr2._answer == "__SKIP__", exr2._answer
+
+    # two wrong 'S' answers must NOT stop the course
+    exr6 = exmod.Exercise(_S(), _H())
+    exr6.start(1)
+    exr6._target = "A"
+    exr6.feed("S", "...")
+    exr6._got = False
+    exr6._answer = None
+    exr6.feed("S", "...")
+    assert exr6._answer != "__STOP__", exr6._answer
 
     exr3 = exmod.Exercise(_S(), _H())
     exr3.start(2)

@@ -73,6 +73,9 @@ class Hub:
     def snapshot_text(self):
         return self.history
 
+    def clear_text(self):
+        self.history = ""
+
     # ---------------------------------------------------------- broadcast
     def broadcast(self, msg):
         raw = json.dumps(msg)

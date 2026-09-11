@@ -179,6 +179,10 @@ class Hub:
         with self._lock:
             return self.history
 
+    def clear_text(self):
+        with self._lock:
+            self.history = ""
+
     def broadcast(self, msg):
         raw = json.dumps(msg)
         with self._lock:
