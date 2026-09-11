@@ -76,8 +76,6 @@ class Exercise:
         self._answer = None
         self._got = False
         self._pos = 0              # current character inside the target
-        self._flash_pos = None     # character just keyed (blinks as feedback)
-        self._flash_until = 0
         self._replay = False       # a wrong letter asks to replay the target
 
     # ---------------------------------------------------------- control
@@ -152,18 +150,14 @@ class Exercise:
                 self._got = True
                 return
         # per-character progress: key the target one letter at a time
-        now = time.ticks_ms()
         if self._pos < len(self._target) and ch and \
                 ch.upper() == self._target[self._pos].upper():
-            self._flash_pos = self._pos          # blink the letter just keyed
-            self._flash_until = now + 450
             self._pos += 1
             if self._pos >= len(self._target):
                 self._answer = self._target
                 self._got = True
         else:
             self._pos = 0          # wrong letter: start the target over
-            self._flash_pos = None
             self._replay = True    # and replay it so the student hears it again
 
     # ---------------------------------------------------------- helpers
@@ -177,19 +171,7 @@ class Exercise:
             return
         total = len(self.targets)
         line1 = "%s %d/%d" % (self.name, self.index + 1, total)
-        chars = list(self._target)
-        now = time.ticks_ms()
-        if (self._flash_pos is not None
-                and time.ticks_diff(now, self._flash_until) < 0):
-            # the letter just keyed blinks as confirmation
-            if (now // 150) % 2 == 0:
-                chars[self._flash_pos] = "_"
-        else:
-            self._flash_pos = None
-            # otherwise the letter to key next blinks (slowly, to spare the I2C)
-            if self._pos < len(chars) and (now // 450) % 2 == 0:
-                chars[self._pos] = "_"
-        self.screen.set_exercise(line1, "".join(chars))
+        self.screen.set_exercise(line1, self._target)
 
     async def _play(self, text):
         if not self.sidetone:
@@ -234,7 +216,6 @@ class Exercise:
             return
         self._target = self.targets[self.index]
         self._pos = 0
-        self._flash_pos = None
         self._replay = False
         self._answer = None
         self._got = False
@@ -244,11 +225,9 @@ class Exercise:
         while self.active and not self._got:
             if self._replay:
                 self._replay = False
-                self._show()
                 await self._play(self._target)
                 continue
-            self._show()
-            await asyncio.sleep_ms(120)
+            await asyncio.sleep_ms(50)
         if not self.active:
             return
 

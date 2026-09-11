@@ -77,8 +77,6 @@ class Exercise(threading.Thread):
         self._answer = None
         self._got = False
         self._pos = 0
-        self._flash_pos = None
-        self._flash_until = 0
         self._replay = False
         self._menu_at = 0
         self._stop = threading.Event()
@@ -152,18 +150,14 @@ class Exercise(threading.Thread):
                 self._got = True
                 return
         # per-character progress: key the target one letter at a time
-        now = time.monotonic()
         if self._pos < len(self._target) and ch and \
                 ch.upper() == self._target[self._pos].upper():
-            self._flash_pos = self._pos
-            self._flash_until = now + 0.45
             self._pos += 1
             if self._pos >= len(self._target):
                 self._answer = self._target
                 self._got = True
         else:
             self._pos = 0
-            self._flash_pos = None
             self._replay = True
 
     # ---------------------------------------------------------- helpers
@@ -177,16 +171,7 @@ class Exercise(threading.Thread):
             return
         total = len(self.targets)
         line1 = "%s %d/%d" % (self.name, self.index + 1, total)
-        chars = list(self._target)
-        now = time.monotonic()
-        if self._flash_pos is not None and now < self._flash_until:
-            if int(now / 0.12) % 2 == 0:
-                chars[self._flash_pos] = "_"
-        else:
-            self._flash_pos = None
-            if self._pos < len(chars) and int(now / 0.35) % 2 == 0:
-                chars[self._pos] = "_"
-        self.screen.set_exercise(line1, "".join(chars))
+        self.screen.set_exercise(line1, self._target)
 
     def _play(self, text):
         if not self.sidetone:
@@ -230,7 +215,6 @@ class Exercise(threading.Thread):
             return
         self._target = self.targets[self.index]
         self._pos = 0
-        self._flash_pos = None
         self._replay = False
         self._answer = None
         self._got = False
@@ -240,11 +224,9 @@ class Exercise(threading.Thread):
         while self.active and not self._got and not self._stop.is_set():
             if self._replay:
                 self._replay = False
-                self._show()
                 self._play(self._target)
                 continue
-            self._show()
-            time.sleep(0.08)
+            time.sleep(0.05)
         if not self.active:
             return
 
