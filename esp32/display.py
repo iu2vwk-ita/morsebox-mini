@@ -119,6 +119,8 @@ class Screen:
         self.hw = Max7219(modules)
         self.wpm = "20"
         self.decode = ""
+        self._banner = None      # banner text (highest priority)
+        self._exercise = None    # exercise prompt
         self._text = self._build()
         self._off = 0
         self._tick = 0
@@ -126,9 +128,18 @@ class Screen:
     def _build(self):
         return "WPM " + self.wpm + "     " + self.decode[-24:]
 
+    def _render(self):
+        """Banner > exercise > normal WPM/decoded text (same as the LCD)."""
+        if self._banner is not None:
+            self._text = self._banner
+        elif self._exercise is not None:
+            self._text = self._exercise
+        else:
+            self._text = self._build()
+
     def set_wpm(self, w):
         self.wpm = str(w)
-        self._text = self._build()
+        self._render()
 
     def add_char(self, ch):
         if ch == " ":
@@ -136,26 +147,30 @@ class Screen:
         elif ch and len(ch) == 1:
             self.decode += ch.upper()
         self.decode = self.decode[-24:]
-        self._text = self._build()
+        self._render()
 
     def clear_text(self):
         """Wipe the decoded text (web UI 'Clear' button)."""
         self.decode = ""
-        self._text = self._build()
+        self._render()
 
     def set_exercise(self, line1, line2=""):
-        self._text = (line1 + "   " + line2).upper()
+        self._exercise = (line1 + "   " + line2).upper()
+        self._render()
         self._off = 0
 
     def clear_exercise(self):
-        self._text = self._build()
+        self._exercise = None
+        self._render()
 
     def set_banner(self, line1, line2=""):
-        self._text = (line1 + "   " + line2).upper()
+        self._banner = (line1 + "   " + line2).upper()
+        self._render()
         self._off = 0
 
     def clear_banner(self):
-        self._text = self._build()
+        self._banner = None
+        self._render()
 
     def _frame_text(self):
         cols = [0] * (COLUMNS + 20)

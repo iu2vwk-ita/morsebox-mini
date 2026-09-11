@@ -237,3 +237,10 @@ class WebServer:
                     client.closed = True
                     break
             await asyncio.sleep_ms(15)
+        # exited because the queue overflowed: close the socket so the reader
+        # loop ends and the client is dropped, instead of staying connected
+        # but silently receiving nothing
+        try:
+            client.writer.close()
+        except Exception:
+            pass

@@ -487,6 +487,55 @@ async def main():
     assert any(e.get("t") == "clear" for e in hub2.events)
     print("PASS clear: screen + hub text wiped, peers notified")
 
+    # ---- 12. the word gap is mirrored on the physical screen too
+    class FakeScreen:
+        def __init__(self):
+            self.chars = []
+
+        def add_char(self, ch):
+            self.chars.append(ch)
+
+    class SnapSettings:
+        def __init__(self):
+            self.d = {"wpm": 20, "reverse": False, "mode": "iambic-a",
+                      "tone": 650, "buzzer": False, "volume": 70}
+
+        def snapshot(self):
+            return self.d
+
+        def get(self):
+            return dict(self.d)
+
+    pad3 = FakePaddle()
+    sc = FakeScreen()
+    k3 = keyer.Keyer(pad3, SnapSettings(), FakeHub(), screen=sc)
+    task3 = asyncio.create_task(k3.run())
+    await asyncio.sleep(0.02)
+    pad3.dit = True
+    await asyncio.sleep(0.04)
+    pad3.dit = False
+    await asyncio.sleep(0.55)          # letter gap (3u) + word gap (7u)
+    task3.cancel()
+    assert "E" in sc.chars, sc.chars
+    assert " " in sc.chars, sc.chars
+    print("PASS screen: letter + word gap mirrored")
+
+    # ---- 13. settings: one bad field must not wipe the others
+    st2 = settings_mod.Settings()
+    st2.patch({"wpm": 33, "tone": "abc", "volume": 55})
+    got = st2.get()
+    assert got["wpm"] == 33, got
+    assert got["tone"] == 650, got
+    assert got["volume"] == 55, got
+    assert settings_mod.as_bool("false") is False
+    assert settings_mod.as_bool("true") is True
+    assert settings_mod.as_bool(0) is False
+    try:
+        os.remove("settings.json")
+    except OSError:
+        pass
+    print("PASS settings: per-field fallback + strict bool")
+
     print("\nALL TESTS PASSED")
 
 

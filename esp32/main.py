@@ -29,11 +29,9 @@ def main():
     print("AP '%s' at http://%s" % (config.AP_SSID, ap.ifconfig()[0]))
 
     # Hardware watchdog: if the event loop ever hangs, the board reboots
-    # instead of freezing forever.
-    try:
-        wdt = WDT(timeout=10000)
-    except Exception:
-        wdt = None
+    # instead of freezing forever. Armed only AFTER init (see below): if boot
+    # ever took more than 10 s it would otherwise reboot in a loop.
+    wdt = None
 
     settings = Settings()
     hub = Hub()
@@ -94,10 +92,20 @@ def main():
     server = WebServer(settings, hub, paddle, on_settings=on_settings,
                        on_clear=on_clear)
 
+    # Arm the watchdog now that init is done.
+    try:
+        wdt = WDT(timeout=10000)
+    except Exception:
+        wdt = None
+
     async def wdt_task():
         while True:
             if wdt:
                 wdt.feed()
+            try:
+                settings.flush()     # persist the last debounced change
+            except Exception:
+                pass
             await asyncio.sleep(1)
 
     async def runner():

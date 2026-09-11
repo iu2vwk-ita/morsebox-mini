@@ -60,12 +60,19 @@ class GPIOTone:
         self._apply()
 
     def set_freq(self, f):
-        self.freq = f
+        f = int(f)
+        ok = not self._pwms        # active mode: nothing to reprogram
         for pwm in self._pwms:
             try:
-                pwm.ChangeFrequency(int(f))
+                pwm.ChangeFrequency(f)
+                ok = True
             except Exception:
                 pass
+        # only remember the new note if it was actually applied, otherwise a
+        # failed change would leave the sidetone stuck on the old one
+        if ok:
+            self.freq = f
+        self._apply()
 
     def set_volume(self, v):
         self._volume = max(0.0, min(1.0, v / 100.0))

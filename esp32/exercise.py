@@ -239,7 +239,8 @@ class Exercise:
             self.active = False
             self._finish()
             await asyncio.sleep_ms(3000)
-            self._clear()
+            if not self.menu:      # a new menu may have been opened meanwhile
+                self._clear()
             return
         if ans == "__SKIP__":
             self.index += 1
@@ -252,7 +253,8 @@ class Exercise:
             self.active = False
             self._finish()
             await asyncio.sleep_ms(3000)
-            self._clear()
+            if not self.menu:
+                self._clear()
         else:
             self._broadcast()
 

@@ -33,30 +33,57 @@ DIT_PIN, DAH_PIN, KEY_PIN, BUZZ_PIN = 17, 27, 22, 24
 HOLD_TIMEOUT = 2.5  # s: forget remote paddles that stop reporting
 
 # ---------------------------------------------------------------- settings
+def as_bool(v, default=False):
+    """Strict boolean: 'false' must NOT become True (bool('false') == True)."""
+    if isinstance(v, bool):
+        return v
+    if isinstance(v, (int, float)):
+        return v != 0
+    if isinstance(v, str):
+        return v.strip().lower() in ("1", "true", "yes", "on")
+    return default
+
+
 class Settings:
     def __init__(self):
         self._lock = threading.Lock()
         self._data = dict(DEFAULTS)
+        self._last_save = 0.0
+        self._dirty = False
         try:
             with open(SETTINGS_FILE, encoding="utf-8") as f:
                 self._data.update(json.load(f))
         except (OSError, ValueError):
             pass
         self._clamp()
+        # flush debounced saves in the background (avoids SD wear on a drag)
+        threading.Thread(target=self._saver, daemon=True).start()
 
     def _clamp(self):
+        # per-field fallback: one bad value must not wipe the others
         d = self._data
-        d["wpm"] = max(5, min(60, int(d.get("wpm", 20))))
-        d["tone"] = max(500, min(1000, int(d.get("tone", 650))))
-        d["reverse"] = bool(d.get("reverse", False))
+        d["wpm"] = self._int(d, "wpm", 20, 5, 60)
+        d["tone"] = self._int(d, "tone", 650, 500, 1000)
+        d["volume"] = self._int(d, "volume", 70, 0, 100)
+        d["reverse"] = as_bool(d.get("reverse", False))
+        d["buzzer"] = as_bool(d.get("buzzer", False))
         if d.get("mode") not in ("iambic-a", "iambic-b", "straight"):
             d["mode"] = "iambic-b"
-        d["buzzer"] = bool(d.get("buzzer", False))
-        d["volume"] = max(0, min(100, int(d.get("volume", 70))))
+
+    @staticmethod
+    def _int(d, key, default, lo, hi):
+        try:
+            return max(lo, min(hi, int(d.get(key, default))))
+        except (TypeError, ValueError):
+            return default
 
     def get(self):
         with self._lock:
             return dict(self._data)
+
+    def snapshot(self):
+        """Read-only view with NO copy: used by the 1 ms keyer loop."""
+        return self._data
 
     def patch(self, p):
         with self._lock:
@@ -64,13 +91,37 @@ class Settings:
                 if k in p:
                     self._data[k] = p[k]
             self._clamp()
+            self._dirty = True
+            data = dict(self._data)
+        self.flush()
+        return data
+
+    def flush(self):
+        """Write at most once per second; the background thread guarantees the
+        last change is eventually persisted."""
+        with self._lock:
+            if not self._dirty:
+                return
+            now = time.monotonic()
+            if now - self._last_save < 1.0:
+                return
+            self._last_save = now
+            self._dirty = False
             data = dict(self._data)
         try:
             with open(SETTINGS_FILE, "w", encoding="utf-8") as f:
                 json.dump(data, f)
         except OSError:
-            pass
-        return data
+            with self._lock:
+                self._dirty = True
+
+    def _saver(self):
+        while True:
+            time.sleep(0.5)
+            try:
+                self.flush()
+            except Exception:
+                pass
 
 
 # ---------------------------------------------------------------- gpio
@@ -164,11 +215,14 @@ class Hub:
         now = time.monotonic()
         d = h = k = False
         with self._lock:
-            for v in self.holds.values():
+            for cid in list(self.holds):
+                v = self.holds[cid]
                 if now - v["ts"] < HOLD_TIMEOUT:
                     d = d or v["dit"]
                     h = h or v["dah"]
                     k = k or v["key"]
+                else:
+                    del self.holds[cid]      # prune stale holds
         return d, h, k
 
     def push_text(self, ch):
@@ -228,7 +282,6 @@ class Keyer(threading.Thread):
 
     def _decode_element(self, dur, unit):
         self._buf += "-" if dur >= 2 * unit else "."
-        self._buf_at = time.monotonic()
 
     def _flush_letter(self):
         if self._buf:
@@ -239,6 +292,9 @@ class Keyer(threading.Thread):
                 self.exercise.feed(ch, buf)
             elif self.exercise and self.exercise.menu:
                 self._menu_select(buf)
+            elif self.exercise and buf == "...---...":
+                # SOS keyed with no gaps: open the menu, do not print a symbol
+                self.exercise.enter_menu()
             else:
                 self.hub.push_text(ch)
                 self.hub.broadcast({"t": "txt", "ch": ch})
@@ -292,15 +348,15 @@ class Keyer(threading.Thread):
         sending = None
         t_end = t_gap = 0.0
         self._buf = ""
-        self._buf_at = 0.0
         self._on_at = 0.0
         self._off_at = 0.0
         word_sent = True
         p_dit = p_dah = p_key = False
         self._pad_dit = self._pad_dah = False
+        snap = getattr(self.settings, "snapshot", None) or self.settings.get
         while not self._stop.is_set():
             now = time.monotonic()
-            st = self.settings.get()
+            st = snap()
             unit = 1.2 / st["wpm"]
             self._unit = unit
             mode = st["mode"]
@@ -374,6 +430,8 @@ class Keyer(threading.Thread):
                     and now - self._off_at > 7 * unit):
                 self.hub.push_text(" ")
                 self.hub.broadcast({"t": "txt", "ch": " "})
+                if self.screen:
+                    self.screen.add_char(" ")
                 word_sent = True
 
             time.sleep(0.001)

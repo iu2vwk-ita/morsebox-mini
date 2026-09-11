@@ -25,7 +25,17 @@ class EasterEgg:
         while True:
             if self._go:
                 self._go = False
-                await self._show_and_play()
+                try:
+                    await self._show_and_play()
+                except Exception as e:
+                    # never let the egg take the whole app down
+                    print("easter error:", e)
+                    self.playing = False
+                    if self.sidetone:
+                        try:
+                            self.sidetone.set(False)
+                        except Exception:
+                            pass
             await asyncio.sleep_ms(50)
 
     async def _show_and_play(self):

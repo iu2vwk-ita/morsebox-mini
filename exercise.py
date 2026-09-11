@@ -79,6 +79,7 @@ class Exercise(threading.Thread):
         self._pos = 0
         self._replay = False
         self._menu_at = 0
+        self._lock = threading.Lock()   # feed() runs in the keyer thread
         self._stop = threading.Event()
 
     # ---------------------------------------------------------- control
@@ -137,31 +138,32 @@ class Exercise(threading.Thread):
         STOP/SKIP must be a single group of 6+ dots / dashes, so they are not
         confused with repeated short answers (e.g. two wrong 'S').
         """
-        if not self.active:
-            return
-        if buf:
-            s = set(buf)
-            if s == {"."} and len(buf) >= 6:
-                self._answer = "__STOP__"
-                self._got = True
+        with self._lock:
+            if not self.active:
                 return
-            if s == {"-"} and len(buf) >= 6:
-                self._answer = "__SKIP__"
-                self._got = True
-                return
-        # per-character progress: key the target one letter at a time
-        if self._pos < len(self._target) and ch and \
-                ch.upper() == self._target[self._pos].upper():
-            self._pos += 1
-            if self._pos >= len(self._target):
-                self._answer = self._target
-                self._got = True
+            if buf:
+                s = set(buf)
+                if s == {"."} and len(buf) >= 6:
+                    self._answer = "__STOP__"
+                    self._got = True
+                    return
+                if s == {"-"} and len(buf) >= 6:
+                    self._answer = "__SKIP__"
+                    self._got = True
+                    return
+            # per-character progress: key the target one letter at a time
+            if self._pos < len(self._target) and ch and \
+                    ch.upper() == self._target[self._pos].upper():
+                self._pos += 1
+                if self._pos >= len(self._target):
+                    self._answer = self._target
+                    self._got = True
+                else:
+                    self._show()
             else:
+                self._pos = 0
                 self._show()
-        else:
-            self._pos = 0
-            self._show()
-            self._replay = True
+                self._replay = True
 
     # ---------------------------------------------------------- helpers
     def _broadcast(self):
@@ -208,47 +210,70 @@ class Exercise(threading.Thread):
 
     # ---------------------------------------------------------- thread
     def _tick(self):
-        if not self.active:
-            if self.menu and time.monotonic() - self._menu_at > 8:
-                self.menu = False
+        with self._lock:
+            active = self.active
+            menu = self.menu
+            menu_at = self._menu_at
+        if not active:
+            if menu and time.monotonic() - menu_at > 8:
+                with self._lock:
+                    self.menu = False
                 self._clear()
             time.sleep(0.1)
             return
-        self._target = self.targets[self.index]
-        self._pos = 0
-        self._replay = False
-        self._answer = None
-        self._got = False
+        with self._lock:
+            self._target = self.targets[self.index]
+            self._pos = 0
+            self._replay = False
+            self._answer = None
+            self._got = False
+            target = self._target
         self._show()
-        self._play(self._target)
+        self._play(target)
 
-        while self.active and not self._got and not self._stop.is_set():
-            if self._replay:
-                self._replay = False
-                self._play(self._target)
+        while True:
+            with self._lock:
+                if not self.active or self._stop.is_set():
+                    return
+                got = self._got
+                replay = self._replay
+                if replay:
+                    self._replay = False
+            if got:
+                break
+            if replay:
+                self._play(target)
                 continue
             time.sleep(0.01)
-        if not self.active:
-            return
 
-        ans = self._answer
+        with self._lock:
+            ans = self._answer
         if ans == "__STOP__":
-            self.active = False
+            with self._lock:
+                self.active = False
             self._finish()
             time.sleep(3)
-            self._clear()
+            with self._lock:
+                menu = self.menu
+            if not menu:                 # a new menu may have been opened
+                self._clear()
             return
-        if ans == "__SKIP__":
-            self.index += 1
-        elif ans and ans.upper() == self._target.upper():
-            self.score += 1
-            self.index += 1
-
-        if self.index >= len(self.targets):
-            self.active = False
+        with self._lock:
+            if ans == "__SKIP__":
+                self.index += 1
+            elif ans and ans.upper() == self._target.upper():
+                self.score += 1
+                self.index += 1
+            done = self.index >= len(self.targets)
+            if done:
+                self.active = False
+        if done:
             self._finish()
             time.sleep(3)
-            self._clear()
+            with self._lock:
+                menu = self.menu
+            if not menu:
+                self._clear()
         else:
             self._broadcast()
 

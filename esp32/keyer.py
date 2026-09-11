@@ -68,6 +68,9 @@ class Keyer:
             elif self.exercise and self.exercise.menu:
                 # exercise menu: pick the drill with dots / a dash
                 self._menu_select(buf)
+            elif self.exercise and buf == "...---...":
+                # SOS keyed with no gaps: open the menu, do not print a symbol
+                self.exercise.enter_menu()
             else:
                 self.hub.push_text(ch)
                 self.hub.broadcast({"t": "txt", "ch": ch})
@@ -132,11 +135,13 @@ class Keyer:
         word_sent = True
         p_dit = p_dah = p_key = False
         self._pad_dit = self._pad_dah = False
+        # snapshot() avoids allocating a dict every millisecond (GC jitter)
+        snap = getattr(self.settings, "snapshot", None) or self.settings.get
 
         while True:
             try:
                 now = time.ticks_ms()
-                st = self.settings.get()
+                st = snap()
                 unit = 1200 // st["wpm"]          # ms per element (dit)
                 self._unit = unit
                 mode = st["mode"]
@@ -211,6 +216,8 @@ class Keyer:
                         and time.ticks_diff(now, self._off_at) > 7 * unit):
                     self.hub.push_text(" ")
                     self.hub.broadcast({"t": "txt", "ch": " "})
+                    if self.screen:
+                        self.screen.add_char(" ")
                     word_sent = True
 
                 await asyncio.sleep_ms(1)
