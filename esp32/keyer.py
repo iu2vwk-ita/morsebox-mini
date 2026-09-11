@@ -117,82 +117,87 @@ class Keyer:
         self._pad_dit = self._pad_dah = False
 
         while True:
-            now = time.ticks_ms()
-            st = self.settings.get()
-            unit = 1200 // st["wpm"]          # ms per element (dit)
-            self._unit = unit
-            mode = st["mode"]
-            rev = st["reverse"]
+            try:
+                now = time.ticks_ms()
+                st = self.settings.get()
+                unit = 1200 // st["wpm"]          # ms per element (dit)
+                self._unit = unit
+                mode = st["mode"]
+                rev = st["reverse"]
 
-            pd, ph, pk = self.paddle.read()
-            rd, rh, rk = self.hub.remote()
-            # reverse: swap DIT/DAH on BOTH inputs (GPIO and touch)
-            raw_dit = pd or rd
-            raw_dah = ph or rh
-            dit = raw_dah if rev else raw_dit
-            dah = raw_dit if rev else raw_dah
-            skey = pk or rk
-            self._in_dit, self._in_dah = dit, dah
-            if (dit, dah) != (self._pad_dit, self._pad_dah):
-                self._pad_dit, self._pad_dah = dit, dah
-                self.hub.broadcast({"t": "pad", "dit": dit, "dah": dah})
+                pd, ph, pk = self.paddle.read()
+                rd, rh, rk = self.hub.remote()
+                # reverse: swap DIT/DAH on BOTH inputs (GPIO and touch)
+                raw_dit = pd or rd
+                raw_dah = ph or rh
+                dit = raw_dah if rev else raw_dit
+                dah = raw_dit if rev else raw_dah
+                skey = pk or rk
+                self._in_dit, self._in_dah = dit, dah
+                if (dit, dah) != (self._pad_dit, self._pad_dah):
+                    self._pad_dit, self._pad_dah = dit, dah
+                    self.hub.broadcast({"t": "pad", "dit": dit, "dah": dah})
 
-            # 5 ms debounce
-            if (dit, dah, skey) != (p_dit, p_dah, p_key):
-                p_dit, p_dah, p_key = dit, dah, skey
-                await asyncio.sleep_ms(5)
-                continue
+                # 5 ms debounce
+                if (dit, dah, skey) != (p_dit, p_dah, p_key):
+                    p_dit, p_dah, p_key = dit, dah, skey
+                    await asyncio.sleep_ms(5)
+                    continue
 
-            if mode == "straight":
-                dit_mem = dah_mem = False
-                sending = None
-                self._set_key(skey)
-            elif sending is not None:
-                if dit:
-                    dit_mem = True
-                if dah:
-                    dah_mem = True
-                if time.ticks_diff(now, t_end) >= 0:
-                    # end of element: mode A resamples, mode B keeps the memory
-                    if mode == "iambic-a":
-                        dit_mem, dah_mem = dit, dah
-                    self._set_key(False)
+                if mode == "straight":
+                    dit_mem = dah_mem = False
                     sending = None
-                    t_gap = now + unit
-            elif time.ticks_diff(now, t_gap) >= 0:
-                if dit:
-                    dit_mem = True
-                if dah:
-                    dah_mem = True
-                if dit_mem and dah_mem:
-                    nxt = "dah" if last == "dit" else "dit"
-                    if nxt == "dit":
+                    self._set_key(skey)
+                elif sending is not None:
+                    if dit:
+                        dit_mem = True
+                    if dah:
+                        dah_mem = True
+                    if time.ticks_diff(now, t_end) >= 0:
+                        # end of element: mode A resamples, mode B keeps the memory
+                        if mode == "iambic-a":
+                            dit_mem, dah_mem = dit, dah
+                        self._set_key(False)
+                        sending = None
+                        t_gap = now + unit
+                elif time.ticks_diff(now, t_gap) >= 0:
+                    if dit:
+                        dit_mem = True
+                    if dah:
+                        dah_mem = True
+                    if dit_mem and dah_mem:
+                        nxt = "dah" if last == "dit" else "dit"
+                        if nxt == "dit":
+                            dit_mem = False
+                        else:
+                            dah_mem = False
+                        sending, last = nxt, nxt
+                        self._set_key(True)
+                        t_end = now + (unit if nxt == "dit" else 3 * unit)
+                    elif dit_mem:
                         dit_mem = False
-                    else:
+                        sending, last = "dit", "dit"
+                        self._set_key(True)
+                        t_end = now + unit
+                    elif dah_mem:
                         dah_mem = False
-                    sending, last = nxt, nxt
-                    self._set_key(True)
-                    t_end = now + (unit if nxt == "dit" else 3 * unit)
-                elif dit_mem:
-                    dit_mem = False
-                    sending, last = "dit", "dit"
-                    self._set_key(True)
-                    t_end = now + unit
-                elif dah_mem:
-                    dah_mem = False
-                    sending, last = "dah", "dah"
-                    self._set_key(True)
-                    t_end = now + 3 * unit
+                        sending, last = "dah", "dah"
+                        self._set_key(True)
+                        t_end = now + 3 * unit
 
-            # decoder: letter gap 3u, word gap 7u
-            if (self._buf and not self.key_out
-                    and time.ticks_diff(now, self._off_at) > 3 * unit):
-                self._flush_letter()
-                word_sent = False
-            if (not self._buf and not word_sent and not self.key_out
-                    and time.ticks_diff(now, self._off_at) > 7 * unit):
-                self.hub.push_text(" ")
-                self.hub.broadcast({"t": "txt", "ch": " "})
-                word_sent = True
+                # decoder: letter gap 3u, word gap 7u
+                if (self._buf and not self.key_out
+                        and time.ticks_diff(now, self._off_at) > 3 * unit):
+                    self._flush_letter()
+                    word_sent = False
+                if (not self._buf and not word_sent and not self.key_out
+                        and time.ticks_diff(now, self._off_at) > 7 * unit):
+                    self.hub.push_text(" ")
+                    self.hub.broadcast({"t": "txt", "ch": " "})
+                    word_sent = True
 
-            await asyncio.sleep_ms(1)
+                await asyncio.sleep_ms(1)
+            except Exception as e:
+                # a decoding error must not stop the keyer
+                print("keyer error:", e)
+                await asyncio.sleep_ms(50)

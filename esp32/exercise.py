@@ -232,23 +232,23 @@ class Exercise:
                 self._clear()
             await asyncio.sleep_ms(100)
             return
-            self._target = self.targets[self.index]
-            self._pos = 0
-            self._flash_pos = None
-            self._replay = False
-            self._answer = None
-            self._got = False
-            self._show()
-            await self._play(self._target)
+        self._target = self.targets[self.index]
+        self._pos = 0
+        self._flash_pos = None
+        self._replay = False
+        self._answer = None
+        self._got = False
+        self._show()
+        await self._play(self._target)
 
-            while self.active and not self._got:
-                if self._replay:
-                    self._replay = False
-                    self._show()
-                    await self._play(self._target)
-                    continue
+        while self.active and not self._got:
+            if self._replay:
+                self._replay = False
                 self._show()
-                await asyncio.sleep_ms(120)
+                await self._play(self._target)
+                continue
+            self._show()
+            await asyncio.sleep_ms(120)
         if not self.active:
             return
 

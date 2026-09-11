@@ -4,7 +4,7 @@
 # with keyer + web server (+ MAX7219 display if enabled).
 import gc
 import uasyncio as asyncio
-from machine import freq
+from machine import freq, WDT
 
 import config
 from wifi_ap import start_ap
@@ -26,6 +26,13 @@ def main():
 
     ap = start_ap()
     print("AP '%s' at http://%s" % (config.AP_SSID, ap.ifconfig()[0]))
+
+    # Hardware watchdog: if the event loop ever hangs, the board reboots
+    # instead of freezing forever.
+    try:
+        wdt = WDT(timeout=10000)
+    except Exception:
+        wdt = None
 
     settings = Settings()
     hub = Hub()
@@ -70,10 +77,18 @@ def main():
                   exercise=exercise)
     server = WebServer(settings, hub, paddle, on_settings=on_settings)
 
+    async def wdt_task():
+        while True:
+            if wdt:
+                wdt.feed()
+            await asyncio.sleep(1)
+
     async def runner():
         asyncio.create_task(keyer.run())
         asyncio.create_task(exercise.run())
         asyncio.create_task(server.start())
+        if wdt:
+            asyncio.create_task(wdt_task())
         if screen:
             asyncio.create_task(screen.run())
         while True:
