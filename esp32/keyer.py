@@ -70,6 +70,10 @@ class Keyer:
             elif self.reflex and self.reflex.active:
                 # during the Reflex game the decoded letter is the answer
                 self.reflex.feed(ch, buf)
+            elif self.easter and self.easter.playing:
+                # 6 dots stop the easter-egg message early
+                if buf and set(buf) == {"."} and len(buf) >= 6:
+                    self.easter.stop()
             elif self.exercise and self.exercise.menu:
                 # exercise menu: pick the drill with dots / a dash
                 self._menu_select(buf)

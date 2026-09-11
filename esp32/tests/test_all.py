@@ -683,7 +683,22 @@ async def main():
     eg._set_window(3)              # no screen -> must not crash
     eg._clear()
     assert "MORSE BOX" in egmod.LINE1 and "gioco" in egmod.LINE2
-    print("PASS easter: 2-line scrolling message")
+
+    # 6 dots stop the message early
+    class FakeEaster:
+        def __init__(self):
+            self.playing = True
+            self.stopped = 0
+
+        def stop(self):
+            self.stopped += 1
+
+    fe = FakeEaster()
+    ke2 = keyer.Keyer(FakePaddle(), FakeSettings(), FakeHub(), easter=fe)
+    ke2._buf = "......"
+    ke2._flush_letter()
+    assert fe.stopped == 1, fe.stopped
+    print("PASS easter: 2-line scrolling message + 6 dots stop it")
 
     print("\nALL TESTS PASSED")
 

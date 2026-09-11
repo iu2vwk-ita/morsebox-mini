@@ -28,9 +28,14 @@ class EasterEgg:
         self.screen = screen
         self.playing = False
         self._go = False
+        self._stop = False
 
     def fire(self):
         self._go = True
+
+    def stop(self):
+        """Key 6 dots to cut the message short."""
+        self._stop = True
 
     async def run(self):
         while True:
@@ -61,10 +66,14 @@ class EasterEgg:
     async def _play_tune(self):
         unit = max(20, 1200 // int(self.settings.get()["wpm"]))
         for ch in TUNE:
+            if self._stop:
+                break
             code = MORSE.get(ch)
             if not code:
                 continue
             for el in code:
+                if self._stop:
+                    break
                 self.sidetone.set(True)
                 await asyncio.sleep_ms(unit if el == "." else 3 * unit)
                 self.sidetone.set(False)
@@ -75,12 +84,13 @@ class EasterEgg:
         """Keep scrolling both lines until cancelled."""
         n = max(len(LINE1), len(LINE2)) + COLS
         i = 0
-        while True:
+        while not self._stop:
             self._set_window(i)
             i = (i + 1) % n
             await asyncio.sleep_ms(STEP_MS)
 
     async def _show_and_play(self):
+        self._stop = False
         self.playing = True
         scroll = asyncio.create_task(self._scroll())
         try:
