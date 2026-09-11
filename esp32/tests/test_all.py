@@ -631,6 +631,8 @@ async def main():
     assert rxmod.Reflex._barstr(1.0) == "#" * 8
     assert rxmod.Reflex._barstr(0.0) == "-" * 8
     assert rxmod.Reflex._barstr(0.5) == "####----"
+    # mixed set: letters + numbers + characters
+    assert "A" in rxmod.CHARS and "5" in rxmod.CHARS and "." in rxmod.CHARS
 
     async def _reflex_round(correct):
         rg = rxmod.Reflex(_S(), _RH(), sidetone=_Tone())
@@ -640,23 +642,25 @@ async def main():
             if rg.playing:
                 break
             await asyncio.sleep(0.01)
-        for _ in range(600):            # wait for it to finish
+        for _ in range(900):            # wait for it to finish
             if rg._target and not rg.playing:
                 break
             await asyncio.sleep(0.01)
         rg.feed(rg._target if correct else "X", "")
         await asyncio.sleep(0.2)
-        res = (rg.score, rg.lives, rg.wpm)
+        res = (rg.score, rg.round, rg.wpm)
         task.cancel()
         return res
 
-    sc, lv, wpm = await _reflex_round(True)
-    assert sc == 1 and lv == rxmod.LIVES, (sc, lv)
+    sc, rnd, wpm = await _reflex_round(True)
+    assert sc == 1 and rnd == 1, (sc, rnd)
     assert wpm == rxmod.START_WPM + rxmod.STEP_UP, wpm
-    sc, lv, wpm = await _reflex_round(False)
-    assert sc == 0 and lv == rxmod.LIVES - 1, (sc, lv)
+    sc, rnd, wpm = await _reflex_round(False)
+    assert sc == 0 and rnd == 1, (sc, rnd)
     assert wpm == rxmod.START_WPM - rxmod.STEP_DOWN, wpm
-    print("PASS reflex: correct -> +1 WPM, wrong -> -2 WPM and a life")
+    assert rxmod.ROUNDS >= 40
+    print("PASS reflex: +1 WPM correct / -2 WPM wrong, %d-round game"
+          % rxmod.ROUNDS)
 
     print("\nALL TESTS PASSED")
 

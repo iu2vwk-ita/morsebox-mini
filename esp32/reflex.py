@@ -15,11 +15,13 @@ MIN_WPM = 10
 MAX_WPM = 40
 STEP_UP = 1          # +1 WPM per correct answer
 STEP_DOWN = 2        # -2 WPM per mistake / timeout
-LIVES = 3
+ROUNDS = 40          # a game is 40 characters
+LIVES = 0            # 0 = no life limit (always play all ROUNDS)
 ANSWER_MS = 3000     # time to answer (the "timer")
 BAR = 8              # countdown bar length on the LCD
 
-CHARS = list("ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789")
+# Mixed set: letters + numbers + common punctuation/prosigns.
+CHARS = list("ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789.,?/=+")
 
 
 class Reflex:
@@ -31,6 +33,7 @@ class Reflex:
         self.active = False
         self.playing = False
         self.score = 0
+        self.round = 0
         self.lives = 0
         self.wpm = START_WPM
         self._target = ""
@@ -43,6 +46,7 @@ class Reflex:
         self.active = True
         self.playing = False
         self.score = 0
+        self.round = 0
         self.lives = LIVES
         self.wpm = START_WPM
         self._got = False
@@ -68,7 +72,7 @@ class Reflex:
         if not self.screen or not hasattr(self.screen, "set_exercise"):
             return
         self.screen.set_exercise(
-            "S:%d L:%d %dWPM" % (self.score, self.lives, self.wpm), line2)
+            "S%d W%d %d/%d" % (self.score, self.wpm, self.round, ROUNDS), line2)
 
     @staticmethod
     def _barstr(frac):
@@ -95,6 +99,7 @@ class Reflex:
 
     # ---------------------------------------------------------- one round
     async def _round(self):
+        self.round += 1
         self._target = random.choice(CHARS)
         self._got = False
         self._ok = False
@@ -118,7 +123,8 @@ class Reflex:
             self.wpm = min(MAX_WPM, self.wpm + STEP_UP)
             self._show("OK!  " + self._target)
         else:
-            self.lives -= 1
+            if LIVES:
+                self.lives -= 1
             self.wpm = max(MIN_WPM, self.wpm - STEP_DOWN)
             self._show("ERR  " + self._target)
         await asyncio.sleep_ms(700)
@@ -130,9 +136,10 @@ class Reflex:
                     await asyncio.sleep_ms(100)
                     continue
                 await self._round()
-                if self.lives <= 0:
+                done = self.round >= ROUNDS or (LIVES and self.lives <= 0)
+                if done:
                     self.active = False
-                    self._show("GAME OVER %d" % self.score)
+                    self._show("DONE %d/%d" % (self.score, ROUNDS))
                     await asyncio.sleep_ms(3000)
                     if self.screen and hasattr(self.screen,
                                                "clear_exercise"):
