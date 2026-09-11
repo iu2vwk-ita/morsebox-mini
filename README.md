@@ -10,7 +10,7 @@ Two builds, **the same features and the same web UI**:
 | Build | Folder | Board | Display |
 |---|---|---|---|
 | **Raspberry Pi** | root (`server.py`, `install.sh`, …) | Pi 4 / 5 / Zero 2 W | MAX7219 8x8 (optional) |
-| **ESP32 / MicroPython** | [`esp32/`](esp32/) | classic ESP32 (also C3/C6/S3 with small pin changes) | LCD1602 I2C (optional) |
+| **ESP32 / MicroPython** | [`esp32/`](esp32/) | classic ESP32 (also C3/C6/S3 with small pin changes) | SSD1306 OLED or LCD1602 I2C (optional) |
 
 ![MorseBox assembled](box.png)
 
@@ -128,19 +128,35 @@ Code in [`esp32/`](esp32/), full guide in
 | DAH | 33 |
 | STRAIGHT | 14 |
 | PIEZO 1 / 2 / 3 | 25 / 26 / 27 |
-| LCD1602 SDA / SCL | 21 / 22 |
+| I2C SDA / SCL (OLED or LCD1602) | 21 / 22 |
 | MAX7219 SCK / MOSI / CS | 18 / 23 / 4 |
 
-Key contacts to GND, internal pull-ups. For the LCD1602 I2C backpack: `VCC` to
-5V (VIN), `GND` to GND.
+Key contacts to GND, internal pull-ups. The firmware auto-detects the display
+at boot: **SSD1306 OLED first, then LCD1602, then MAX7219, then none**. Both
+I2C displays share the same two wires:
 
-### Two hardware variants
+* **SSD1306 OLED** (0.96"/1.3", 128x64, I2C 4-pin) — the nicest option: ~5-6
+  lines of text, no cramped 16x2 window. `VCC` to **3.3V**, `GND`, `SCL` to
+  GPIO22, `SDA` to GPIO21. Address 0x3C/0x3D (auto-detected).
+* **LCD1602** with I2C backpack — `VCC` to 5V (VIN), `GND`, same SDA/SCL.
+  Address 0x27/0x3F.
+
+### Display options (pick one, or none)
+
+The firmware detects the display automatically, in this order:
+**SSD1306 OLED -> LCD1602 -> MAX7219 -> no display**. Nothing to configure.
+
+* **With SSD1306 OLED** (recommended — "the nice one") — 128x64 graphical
+  display, same two I2C wires as the LCD. Top line `WPM xx` + keyer mode, then
+  the decoded text wrapped over several lines; the exercise target and its `^`
+  cursor are far easier to read. The driver is loaded **only** if the I2C bus
+  answers at 0x3C/0x3D, so with no OLED there is no RAM cost.
 
 * **With LCD1602** — line 1 `WPM xx` + keyer mode, line 2 the decoded text.
 
   ![MorseBox ESP32 with LCD1602](box-lcd.png)
 
-* **Without LCD (simpler)** — no display: everything is controlled from the
+* **Without display (simpler)** — no display: everything is controlled from the
   phone web app (speed, mode, tone, volume and the decoded text). This is the
   easiest build.
 

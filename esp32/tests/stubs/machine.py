@@ -51,6 +51,15 @@ class I2C:
     def __init__(self, *args, **kwargs):
         pass
 
+    def scan(self):
+        return [0x3C]
+
+    def writeto(self, addr, buf):
+        pass
+
+    def writevto(self, addr, buf):
+        pass
+
 
 class SPI:
     def __init__(self, *args, **kwargs):

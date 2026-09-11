@@ -13,9 +13,10 @@ WebSocket protocol is the same.
 - Iambic A / B + straight keyer + **SINGLE** beginner mode (one tap = one
   element, no memory/repeat), 5-60 WPM, reverse DX/SX, CW to text decoder.
 - **Zero-latency hardware PWM sidetone** on 1-3 piezos, no audio pipeline.
-- Optional MAX7219 8x8 display.
-- Optional **LCD1602 I2C** display: line 1 `WPM xx` + keyer mode, line 2 the
-  decoded CW text.
+- Optional display, **auto-detected at boot**: SSD1306 OLED -> LCD1602 I2C ->
+  MAX7219 8x8 -> none. The **OLED** (128x64, recommended) shows `WPM xx` +
+  keyer mode on the top line and the decoded CW text wrapped below; the LCD
+  shows 16x2. No RAM cost when no OLED is connected.
 
 ## Exercise mode
 
@@ -59,12 +60,20 @@ run shows `DONE n/m`.
 | MAX7219 SCK | 18 | hardware SPI VSPI |
 | MAX7219 MOSI | 23 | hardware SPI VSPI |
 | MAX7219 CS | 4 | output |
-| LCD1602 SDA | 21 | I2C |
-| LCD1602 SCL | 22 | I2C |
+| I2C SDA (OLED / LCD1602) | 21 | I2C |
+| I2C SCL (OLED / LCD1602) | 22 | I2C |
 
 The three piezos sound together: even one is enough.
 The key contacts go to GND; the pull-ups are internal to the ESP32.
-For the LCD1602 I2C backpack: `VCC` to 5V (VIN), `GND` to GND.
+
+**Display** (optional, auto-detected: **OLED -> LCD1602 -> MAX7219 -> none**).
+Both I2C displays use the same two wires:
+
+- **SSD1306 OLED** (0.96"/1.3", 128x64, I2C **4-pin**): `VCC` to **3.3V**,
+  `GND`, `SCL` to GPIO22, `SDA` to GPIO21. Address 0x3C/0x3D, scanned
+  automatically. This is the nicest option.
+- **LCD1602** with I2C backpack: `VCC` to 5V (VIN), `GND`, same SDA/SCL
+  (address 0x27/0x3F).
 
 ## Requirements
 
@@ -113,6 +122,9 @@ frame encode/decode, HTTP parsing, routes and path traversal.
 
 In `config.py`:
 
+- `OLED_ENABLED = True` to use an SSD1306 I2C OLED (default `True`, tried
+  first). The `oled` module is imported only if the bus answers at 0x3C/0x3D,
+  so there is **no RAM cost** when no OLED is connected.
 - `LCD_ENABLED = True` to use the LCD1602 I2C display (default `True`).
 - `DISPLAY_ENABLED = True` to use the MAX7219 matrix (default `False`).
 - `BUZZER_MODE = "passive"` for piezos (default). `"active"` for buzzers with
@@ -138,11 +150,13 @@ and persist across reboots.
 | `hub.py` | `Hub.broadcast()`, `remote()`, `hold()` | WebSocket clients, remote paddle holds, text history |
 | `wsproto.py` | `ws_accept()`, `ws_encode()`, `ws_read_frame()` | Minimal RFC 6455 WebSocket |
 | `webserver.py` | `WebServer.start()` | HTTP routes + WebSocket upgrade (native sockets) |
+| `oled.py` | `Screen` | SSD1306 128x64 OLED: WPM/mode, wrapped decoded text, exercise target |
+| `ssd1306.py` | `SSD1306_I2C` | MicroPython SSD1306 I2C driver (micropython-lib, MIT) |
 | `lcd1602.py` | `I2cLcd`, `Screen` | 16x2 I2C display: WPM/mode, decoded text, exercise target |
 | `display.py` | `Max7219`, `Screen` | Optional 8x8 matrix (scrolling text) |
 | `settings.py` | `Settings.get()`, `patch()` | Persistent settings on `settings.json` |
 | `morse.py` | `MORSE`, `FROM_MORSE` | Morse table and its reverse |
-| `tests/test_all.py` | — | 19 host-side tests (CPython, `uasyncio`/`time` stubs) |
+| `tests/test_all.py` | — | Host-side tests (CPython, `uasyncio`/`time`/`machine`/`ssd1306` stubs) |
 | `tests/selftest_device.py` | — | On-device self-test: AP, GPIO, PWM, HTTP, WS, keyer |
 
 ## Differences from the Pi version

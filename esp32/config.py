@@ -46,6 +46,16 @@ LCD_ADDR = 0x27                  # PCF8574T = 0x27, PCF8574A = 0x3F
 LCD_COLS = 16
 LCD_ROWS = 2
 
+# ------------------------------------------------------------------ OLED SSD1306
+# 0.96"/1.3" I2C OLED (128x64). Tried first; falls back to the LCD1602.
+OLED_ENABLED = True              # True if an SSD1306 I2C OLED is connected
+OLED_I2C_ID = 0
+OLED_SDA = 21                    # same I2C bus as the LCD1602
+OLED_SCL = 22
+OLED_ADDR = 0x3C                 # 0x3C / 0x3D (auto-detected on the bus too)
+OLED_WIDTH = 128
+OLED_HEIGHT = 64
+
 # ------------------------------------------------------------------ access point
 AP_SSID = "IU2VWK-MORSE"
 AP_PASS = "morse1234"

@@ -5,8 +5,8 @@ import asyncio
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 PROJECT = os.path.dirname(HERE)
-sys.path.insert(0, os.path.join(HERE, "stubs"))
 sys.path.insert(0, PROJECT)
+sys.path.insert(0, os.path.join(HERE, "stubs"))   # stubs win over real modules
 
 # MicroPython time API on top of CPython's time
 time.ticks_ms = lambda: int(time.monotonic() * 1000) & 0x3FFFFFFF
@@ -572,6 +572,26 @@ async def main():
     except OSError:
         pass
     print("PASS settings: per-field fallback + strict bool")
+
+    # ---- 14. OLED screen: wrap + layout (fake ssd1306)
+    import oled as oled_mod
+    assert oled_mod.Screen._wrap("ABCDEFGHIJKLMNOPQRST", 16) == \
+        ["ABCDEFGHIJKLMNOP", "QRST"]
+    o = oled_mod.Screen()
+    o.set_wpm(25)
+    o.set_mode("single")
+    o.add_char("C")
+    o.add_char("Q")
+    o._refresh()
+    assert any("WPM 25" in t[0] for t in o.oled.texts), o.oled.texts
+    o.set_exercise("CQ", " ^")
+    o._refresh()
+    assert any(t[0] == "CQ" for t in o.oled.texts), o.oled.texts
+    o.clear_exercise()
+    o.set_banner("KAPPAROGGERO", "POSITIVO")
+    o._refresh()
+    assert any("KAPPAROGGERO" in t[0] for t in o.oled.texts), o.oled.texts
+    print("PASS OLED: wrap + layout")
 
     print("\nALL TESTS PASSED")
 

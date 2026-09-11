@@ -44,7 +44,29 @@ def main():
           "ok" if sidetone._ok else "not found")
 
     screen = None
-    if config.LCD_ENABLED:
+    # Display: try the OLED first, then the LCD1602, then the MAX7219 matrix.
+    # The oled module is imported ONLY if the I2C bus actually answers at
+    # 0x3C/0x3D, so with no OLED there is no RAM cost at all.
+    if config.OLED_ENABLED:
+        try:
+            from machine import I2C, Pin
+            bus = I2C(config.OLED_I2C_ID, scl=Pin(config.OLED_SCL),
+                      sda=Pin(config.OLED_SDA), freq=400000)
+            found = bus.scan()
+            if 0x3C in found or 0x3D in found:
+                import oled
+                screen = oled.Screen(bus)
+                print("SSD1306 OLED display active")
+            else:
+                try:
+                    bus.deinit()
+                except Exception:
+                    pass
+                print("OLED not present")
+        except Exception as e:
+            print("OLED not initialized:", e)
+            screen = None
+    if screen is None and config.LCD_ENABLED:
         try:
             import lcd1602
             screen = lcd1602.Screen()
@@ -52,7 +74,7 @@ def main():
         except Exception as e:
             print("LCD not initialized:", e)
             screen = None
-    elif config.DISPLAY_ENABLED:
+    if screen is None and config.DISPLAY_ENABLED:
         try:
             import display
             screen = display.Screen()
