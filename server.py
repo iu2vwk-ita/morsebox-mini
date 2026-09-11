@@ -320,7 +320,7 @@ class Keyer(threading.Thread):
             # 5 ms debounce
             if (dit, dah, skey) != (p_dit, p_dah, p_key):
                 p_dit, p_dah, p_key = dit, dah, skey
-                time.sleep(0.005)
+                time.sleep(0.002)
                 continue
 
             if mode == "straight":

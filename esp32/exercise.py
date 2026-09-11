@@ -230,7 +230,7 @@ class Exercise:
                 self._replay = False
                 await self._play(self._target)
                 continue
-            await asyncio.sleep_ms(50)
+            await asyncio.sleep_ms(10)
         if not self.active:
             return
 

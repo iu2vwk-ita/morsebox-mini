@@ -227,7 +227,7 @@ class Exercise(threading.Thread):
                 self._replay = False
                 self._play(self._target)
                 continue
-            time.sleep(0.05)
+            time.sleep(0.01)
         if not self.active:
             return
 

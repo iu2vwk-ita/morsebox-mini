@@ -141,7 +141,7 @@ class Keyer:
                 # 5 ms debounce
                 if (dit, dah, skey) != (p_dit, p_dah, p_key):
                     p_dit, p_dah, p_key = dit, dah, skey
-                    await asyncio.sleep_ms(5)
+                    await asyncio.sleep_ms(2)
                     continue
 
                 if mode == "straight":

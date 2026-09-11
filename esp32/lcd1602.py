@@ -196,4 +196,4 @@ class Screen:
                     self._refresh()
                 except Exception:
                     pass
-            await asyncio.sleep_ms(200)
+            await asyncio.sleep_ms(40)

@@ -153,7 +153,7 @@ els.tone.oninput = () => {
   els.toneVal.textContent = S.tone + ' Hz';
   if (AC && osc) osc.frequency.value = S.tone;
   clearTimeout(toneTimer);
-  toneTimer = setTimeout(saveSettings, 120);   // send while dragging, not only on release
+  toneTimer = setTimeout(saveSettings, 60);    // send while dragging, not only on release
 };
 els.tone.onchange = saveSettings;
 let volTimer = null;
@@ -162,7 +162,7 @@ els.vol.oninput = () => {
   S.volume = +els.vol.value;
   els.volVal.textContent = els.vol.value + '%';
   clearTimeout(volTimer);
-  volTimer = setTimeout(saveSettings, 150);
+  volTimer = setTimeout(saveSettings, 80);
 };
 els.clear.onclick = () => { els.decoded.textContent = ''; };
 
