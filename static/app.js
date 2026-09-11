@@ -20,6 +20,13 @@ let ws = null, retry = 0;
 let local = { l: false, r: false, k: false };   // paddle touch locali
 let keyOn = false;
 
+/* While the user is moving a slider, ignore the device echo for that control:
+   otherwise the echoed value (slightly behind your finger) snaps the slider back. */
+const editUntil = { wpm: 0, tone: 0, volume: 0 };
+const EDIT_GRACE = 1200;   // ms
+function touchEdit(name) { editUntil[name] = Date.now() + EDIT_GRACE; }
+function editing(name) { return Date.now() < editUntil[name]; }
+
 /* ---------------- audio ---------------- */
 let AC = null, osc = null, gain = null;
 function audio() {
@@ -95,6 +102,10 @@ function setPads(dit, dah) {
 function scrollRx() { els.decoded.scrollTop = els.decoded.scrollHeight; }
 
 function applySettings(s) {
+  s = Object.assign({}, s);
+  if (editing('wpm')) delete s.wpm;
+  if (editing('tone')) delete s.tone;
+  if (editing('volume')) delete s.volume;
   S = Object.assign(S, s);
   els.wpmVal.textContent = S.wpm;
   els.wpmEcho.textContent = '· ' + S.wpm + ' WPM';
@@ -126,9 +137,9 @@ function setWpm(w) {
   els.wpmEcho.textContent = '· ' + S.wpm + ' WPM';
   saveSettings();
 }
-$('wpmDown').onclick = () => setWpm(S.wpm - 1);
-$('wpmUp').onclick = () => setWpm(S.wpm + 1);
-els.wpmSlider.oninput = () => setWpm(+els.wpmSlider.value);
+$('wpmDown').onclick = () => { touchEdit('wpm'); setWpm(S.wpm - 1); };
+$('wpmUp').onclick = () => { touchEdit('wpm'); setWpm(S.wpm + 1); };
+els.wpmSlider.oninput = () => { touchEdit('wpm'); setWpm(+els.wpmSlider.value); };
 els.revBtn.onclick = () => {
   S.reverse = !S.reverse;
   applySettings(S);
@@ -136,6 +147,7 @@ els.revBtn.onclick = () => {
 };
 els.seg.forEach(b => b.onclick = () => { S.mode = b.dataset.mode; applySettings(S); saveSettings(); });
 els.tone.oninput = () => {
+  touchEdit('tone');
   S.tone = +els.tone.value;
   els.toneVal.textContent = S.tone + ' Hz';
   if (AC && osc) osc.frequency.value = S.tone;
@@ -143,6 +155,7 @@ els.tone.oninput = () => {
 els.tone.onchange = saveSettings;
 let volTimer = null;
 els.vol.oninput = () => {
+  touchEdit('volume');
   S.volume = +els.vol.value;
   els.volVal.textContent = els.vol.value + '%';
   clearTimeout(volTimer);
