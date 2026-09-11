@@ -136,7 +136,7 @@ input[type="range"] { width: 100%; accent-color: var(--cyan); height: 32px; curs
 .toggle[aria-pressed="true"] { border-color: var(--cyan); background: #22d3ee14; }
 .toggle[aria-pressed="true"] .t-state { color: var(--cyan); border-color: var(--cyan); }
 
-.seg { display: grid; grid-template-columns: repeat(3, 1fr); gap: 9px; }
+.seg { display: grid; grid-template-columns: repeat(2, 1fr); gap: 9px; }
 .seg button { background: linear-gradient(160deg, #ffffff10, #ffffff05); border: 1px solid #ffffff24;
   color: var(--dim); border-radius: var(--radius-sm); padding: 14px 4px; font-size: 12.5px;
   font-weight: 800; letter-spacing: .06em; cursor: pointer; }

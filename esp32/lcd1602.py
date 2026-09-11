@@ -79,7 +79,8 @@ class I2cLcd:
 
 _MODE_LABEL = {"iambic-a": "IAMB A",
                "iambic-b": "IAMB B",
-               "straight": "STRAIGHT"}
+               "straight": "STRAIGHT",
+               "single": "SINGLE"}
 
 
 class Screen:

@@ -135,6 +135,28 @@ async def main():
     assert hbb.history.strip() == "A", "iambic B: expected A, got %r" % hbb.history
     print("PASS keyer iambic B: dit+dah -> 'A' (no extra element)")
 
+    # ---- 1c. single (beginner) mode: one tap = exactly one element
+    async def _single():
+        pad, hub = FakePaddle(), FakeHub()
+        k = keyer.Keyer(pad, FakeSettings(mode="single"), hub)
+        task = asyncio.create_task(k.run())
+        await asyncio.sleep(0.02)
+        for which in ("dit", "dit", "dah"):     # ..- = U
+            if which == "dit":
+                pad.dit = True
+            else:
+                pad.dah = True
+            await asyncio.sleep(0.02)
+            pad.dit = pad.dah = False
+            await asyncio.sleep(0.02)
+        await asyncio.sleep(1.0)
+        task.cancel()
+        return hub.history.strip()
+
+    got_single = await _single()
+    assert got_single == "U", "single: expected U, got %r" % got_single
+    print("PASS keyer single: one tap = one element (..- -> U)")
+
     # ---- 1c. iambic A keyer: a dit tap does NOT add elements
     pa, ha = FakePaddle(), FakeHub()
     await scenario_tap(pa, ha, FakeSettings(mode="iambic-a"))

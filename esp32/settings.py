@@ -35,7 +35,7 @@ class Settings:
         d["volume"] = self._int(d, "volume", 70, 0, 100)
         d["reverse"] = as_bool(d.get("reverse", False))
         d["buzzer"] = as_bool(d.get("buzzer", False))
-        if d.get("mode") not in ("iambic-a", "iambic-b", "straight"):
+        if d.get("mode") not in ("iambic-a", "iambic-b", "straight", "single"):
             d["mode"] = "iambic-b"
 
     @staticmethod

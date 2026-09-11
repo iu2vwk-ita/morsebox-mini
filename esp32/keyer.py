@@ -135,6 +135,7 @@ class Keyer:
         word_sent = True
         p_dit = p_dah = p_key = False
         prev_dit = prev_dah = False
+        queue = []                 # single mode: pending taps
         self._pad_dit = self._pad_dah = False
         # snapshot() avoids allocating a dict every millisecond (GC jitter)
         snap = getattr(self.settings, "snapshot", None) or self.settings.get
@@ -171,6 +172,24 @@ class Keyer:
                     dit_mem = dah_mem = False
                     sending = None
                     self._set_key(skey)
+                elif mode == "single":
+                    # Beginner mode: one tap = exactly one element, no memory
+                    # and no automatic repeat. Taps are queued in the order the
+                    # paddles are pressed, so nothing is lost.
+                    if dit and not prev_dit and len(queue) < 8:
+                        queue.append("dit")
+                    if dah and not prev_dah and len(queue) < 8:
+                        queue.append("dah")
+                    if sending is not None:
+                        if time.ticks_diff(now, t_end) >= 0:
+                            self._set_key(False)
+                            sending = None
+                            t_gap = now + unit
+                    elif queue and time.ticks_diff(now, t_gap) >= 0:
+                        nxt = queue.pop(0)
+                        sending, last = nxt, nxt
+                        self._set_key(True)
+                        t_end = now + (unit if nxt == "dit" else 3 * unit)
                 else:
                     # Memory: while in the gap any closed paddle is remembered;
                     # while an element is playing only a NEW press counts (a

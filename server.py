@@ -67,7 +67,7 @@ class Settings:
         d["volume"] = self._int(d, "volume", 70, 0, 100)
         d["reverse"] = as_bool(d.get("reverse", False))
         d["buzzer"] = as_bool(d.get("buzzer", False))
-        if d.get("mode") not in ("iambic-a", "iambic-b", "straight"):
+        if d.get("mode") not in ("iambic-a", "iambic-b", "straight", "single"):
             d["mode"] = "iambic-b"
 
     @staticmethod
@@ -353,6 +353,7 @@ class Keyer(threading.Thread):
         word_sent = True
         p_dit = p_dah = p_key = False
         prev_dit = prev_dah = False
+        queue = []                 # single mode: pending taps
         self._pad_dit = self._pad_dah = False
         snap = getattr(self.settings, "snapshot", None) or self.settings.get
         while not self._stop.is_set():
@@ -386,6 +387,23 @@ class Keyer(threading.Thread):
                 dit_mem = dah_mem = False
                 sending = None
                 self._set_key(skey)
+            elif mode == "single":
+                # Beginner mode: one tap = exactly one element, no memory and
+                # no automatic repeat. Taps are queued in press order.
+                if dit and not prev_dit and len(queue) < 8:
+                    queue.append("dit")
+                if dah and not prev_dah and len(queue) < 8:
+                    queue.append("dah")
+                if sending is not None:
+                    if now >= t_end:
+                        self._set_key(False)
+                        sending = None
+                        t_gap = now + unit
+                elif queue and now >= t_gap:
+                    nxt = queue.pop(0)
+                    sending, last = nxt, nxt
+                    self._set_key(True)
+                    t_end = now + (unit if nxt == "dit" else 3 * unit)
             else:
                 # Memory: while in the gap any closed paddle is remembered;
                 # while an element is playing only a NEW press counts (rising
