@@ -62,6 +62,8 @@ SETTINGS_FILE = "settings.json"
 # Scrolled on the LCD (or MAX7219) once at startup. Set to "" to disable.
 BOOT_MESSAGE = "Hello! 73 de IU2VWK Angelo"
 BOOT_TITLE = "MorseBox Mini"
+# Second boot message: how to use the test/exercise mode.
+BOOT_HELP = "TEST=start   .. ..=stop   ------ =skip"
 
 DEFAULTS = {"wpm": 20, "reverse": False, "mode": "iambic-b",
             "tone": 650, "buzzer": False, "volume": 70}

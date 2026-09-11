@@ -9,7 +9,7 @@ import time
 import uasyncio as asyncio
 from machine import I2C, Pin
 from config import (LCD_I2C_ID, LCD_SDA, LCD_SCL, LCD_ADDR,
-                    LCD_COLS, LCD_ROWS, BOOT_MESSAGE, BOOT_TITLE)
+                    LCD_COLS, LCD_ROWS, BOOT_MESSAGE, BOOT_TITLE, BOOT_HELP)
 
 # PCF8574 bits on the classic FC-113 backpack
 _RS = 0x01
@@ -154,6 +154,11 @@ class Screen:
         if BOOT_MESSAGE:
             try:
                 await self._boot_scroll(BOOT_MESSAGE)
+            except Exception:
+                pass
+        if BOOT_HELP:
+            try:
+                await self._boot_scroll(BOOT_HELP)
             except Exception:
                 pass
         while True:

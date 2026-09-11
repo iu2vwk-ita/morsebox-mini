@@ -6,7 +6,7 @@
 import uasyncio as asyncio
 from machine import Pin, SPI
 from config import (DISPLAY_SCK, DISPLAY_MOSI, DISPLAY_CS, DISPLAY_MODULES,
-                    BOOT_MESSAGE, BOOT_TITLE)
+                    BOOT_MESSAGE, BOOT_TITLE, BOOT_HELP)
 
 MODULES = DISPLAY_MODULES
 COLUMNS = MODULES * 8
@@ -170,6 +170,11 @@ class Screen:
         if BOOT_MESSAGE:
             try:
                 await self._boot_scroll(BOOT_MESSAGE)
+            except Exception:
+                pass
+        if BOOT_HELP:
+            try:
+                await self._boot_scroll(BOOT_HELP)
             except Exception:
                 pass
         while True:
