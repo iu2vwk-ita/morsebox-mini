@@ -206,6 +206,14 @@ async def main():
     he.history = "QSO SOS"
     ke._check_exercise_trigger()
     assert ex.menu is True
+    # slow S O S (with word gaps) and raw ...---... must both work
+    ex.menu = False
+    he.history = "S O S"
+    ke._check_exercise_trigger()
+    assert ex.menu is True
+    ex.menu = False
+    ke._check_exercise_trigger("...---...")
+    assert ex.menu is True
     ke._menu_select("..")               # select exercise 2
     assert ex.pending == 2, ex.pending
     assert ex.started is None

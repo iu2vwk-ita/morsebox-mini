@@ -56,7 +56,7 @@ class Keyer:
                 self.hub.broadcast({"t": "txt", "ch": ch})
                 if self.screen:
                     self.screen.add_char(ch)
-                self._check_exercise_trigger()
+                self._check_exercise_trigger(buf)
             self._buf = ""
 
     def _menu_select(self, buf):
@@ -80,11 +80,18 @@ class Keyer:
         else:
             ex.menu = False
 
-    def _check_exercise_trigger(self):
-        """Start an exercise on SOS (menu) or TEST / TESTn."""
+    def _check_exercise_trigger(self, buf=None):
+        """Start an exercise on SOS (menu) or TEST / TESTn.
+
+        Spaces are ignored, so a slow S O S (with word gaps) still works, and
+        SOS keyed with no gaps at all is detected from the raw elements.
+        """
         if not self.exercise:
             return
-        txt = self.hub.snapshot_text().upper()
+        if buf == "...---...":
+            self.exercise.enter_menu()
+            return
+        txt = self.hub.snapshot_text().replace(" ", "").upper()
         if txt.endswith("SOS"):
             self.exercise.enter_menu()
             return
