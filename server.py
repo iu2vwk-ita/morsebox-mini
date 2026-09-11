@@ -497,11 +497,17 @@ class Handler(BaseHTTPRequestHandler):
                     hub.hold(conn, msg.get("dit"), msg.get("dah"),
                              msg.get("key"))
                 elif msg.get("t") == "settings":
-                    data = self.server.settings.patch(msg)
-                    _apply_screen(self.server, data)
-                    hub.broadcast({"t": "settings", "settings": data},
-                                  exclude=conn)
+                    # a bad setting must never tear down the WebSocket
+                    try:
+                        data = self.server.settings.patch(msg)
+                        _apply_screen(self.server, data)
+                        hub.broadcast({"t": "settings", "settings": data},
+                                      exclude=conn)
+                    except Exception:
+                        pass
         except (ConnectionError, OSError):
+            pass
+        except Exception:
             pass
         finally:
             hub.drop(conn)
@@ -536,8 +542,11 @@ class Handler(BaseHTTPRequestHandler):
             patch = json.loads(self.rfile.read(ln).decode("utf-8") or "{}")
         except ValueError:
             patch = {}
-        data = self.server.settings.patch(patch)
-        _apply_screen(self.server, data)
+        try:
+            data = self.server.settings.patch(patch)
+            _apply_screen(self.server, data)
+        except Exception:
+            data = self.server.settings.get()
         self.server.hub.broadcast({"t": "settings", "settings": data})
         self._json(data)
 
