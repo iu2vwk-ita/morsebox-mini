@@ -39,6 +39,7 @@ class Reflex:
         self._target = ""
         self._got = False
         self._ok = False
+        self._skip = False
         self._deadline = 0
 
     # ---------------------------------------------------------- control
@@ -51,6 +52,7 @@ class Reflex:
         self.wpm = START_WPM
         self._got = False
         self._ok = False
+        self._skip = False
         if hasattr(self.hub, "clear_text"):
             self.hub.clear_text()
         self.hub.broadcast({"t": "ex", "on": True, "name": "REFLEX",
@@ -59,11 +61,25 @@ class Reflex:
     def stop(self):
         self.active = False
         self.playing = False
+        if self.screen and hasattr(self.screen, "clear_exercise"):
+            try:
+                self.screen.clear_exercise()
+            except Exception:
+                pass
 
     def feed(self, ch, buf):
         """Called by the keyer when a letter is decoded."""
         if not self.active or self.playing:
             return
+        if buf:
+            s = set(buf)
+            if s == {"."} and len(buf) >= 6:
+                self.stop()              # 6 dots = STOP, like the exercises
+                return
+            if s == {"-"} and len(buf) >= 6:
+                self._skip = True        # 6 dashes = SKIP this character
+                self._got = True
+                return
         self._ok = bool(ch) and ch.upper() == self._target
         self._got = True
 
@@ -118,7 +134,10 @@ class Reflex:
             await asyncio.sleep_ms(100)
         if not self.active:
             return
-        if self._got and self._ok:
+        if self._skip:
+            self._skip = False
+            self._show("SKIP " + self._target)
+        elif self._got and self._ok:
             self.score += 1
             self.wpm = min(MAX_WPM, self.wpm + STEP_UP)
             self._show("OK!  " + self._target)

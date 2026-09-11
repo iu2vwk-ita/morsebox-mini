@@ -662,6 +662,19 @@ async def main():
     print("PASS reflex: +1 WPM correct / -2 WPM wrong, %d-round game"
           % rxmod.ROUNDS)
 
+    # 6 dots = STOP the game, 6 dashes = SKIP the character
+    rg2 = rxmod.Reflex(_S(), _RH())
+    rg2.start()
+    rg2._target = "K"
+    rg2.feed("?", "......")
+    assert rg2.active is False, "6 dots must stop the game"
+    rg3 = rxmod.Reflex(_S(), _RH())
+    rg3.start()
+    rg3._target = "K"
+    rg3.feed("?", "------")
+    assert rg3.active is True and rg3._skip is True and rg3._got is True
+    print("PASS reflex: 6 dots = stop, 6 dashes = skip")
+
     print("\nALL TESTS PASSED")
 
 
