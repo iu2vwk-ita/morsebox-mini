@@ -262,9 +262,9 @@ class Keyer(threading.Thread):
             if 1 <= n <= 9:
                 ex.select(n)
             else:
-                ex.menu = False
+                ex.cancel()
         else:
-            ex.menu = False
+            ex.cancel()
 
     def _check_exercise_trigger(self, buf=None):
         """Start an exercise on SOS (menu) or TEST / TESTn."""

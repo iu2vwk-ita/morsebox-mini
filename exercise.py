@@ -89,6 +89,8 @@ class Exercise(threading.Thread):
         self.menu = True
         self.pending = None
         self._menu_at = time.monotonic()
+        if hasattr(self.hub, "clear_text"):
+            self.hub.clear_text()
         self._menu_show()
         self.hub.broadcast({"t": "ex", "on": False, "menu": True})
 
