@@ -24,18 +24,21 @@ menu, key **N dots** to pick a drill, then **`..`** to confirm (or **`--`** to
 exit). The target is **shown on the LCD and played on the piezo** (always
 together) at the selected WPM, then you key it back.
 
-| N dots | Exercise |
-|---|---|
-| `.` | TEST1 - Alphabet A-Z |
-| `..` | TEST2 - Numbers 0-9 |
-| `...` | TEST3 - Koch order |
-| `....` | TEST4 - 20 random letters |
-| `.....` | TEST5 - 20 random digits |
-| `......` | TEST6 - 20 random mixed |
-| `.......` | TEST7 - Common callsigns |
-| `........` | TEST8 - Q-codes / abbreviations |
-| `.........` | TEST9 - Punctuation / prosigns |
-| `-` | Full drill: A-Z then 0-9 |
+| N dots | Name on LCD | Exercise |
+|---|---|---|
+| `.` | ALPHABET | TEST1 - Alphabet A-Z |
+| `..` | NUMBERS | TEST2 - Numbers 0-9 |
+| `...` | KOCH | TEST3 - Koch order |
+| `....` | LETTERS | TEST4 - 20 random letters |
+| `.....` | DIGITS | TEST5 - 20 random digits |
+| `......` | MIXED | TEST6 - 20 random mixed |
+| `.......` | CALLSIGNS | TEST7 - Common callsigns |
+| `........` | ABBREV | TEST8 - Q-codes / abbreviations |
+| `.........` | PUNCT | TEST9 - Punctuation / prosigns |
+| `-` | FULL | Full drill: A-Z then 0-9 |
+
+When you pick a number the LCD shows its name (e.g. `3 KOCH ?`) before you
+confirm with `..`.
 
 You can also key **`TEST`** (full drill) or **`TEST1`..`TEST9`** directly.
 

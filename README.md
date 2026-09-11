@@ -48,18 +48,21 @@ The target is **shown on the display and played on the piezo** at the chosen
 WPM; for multi-letter targets the whole word is shown and the letter to key
 **blinks**. A correct letter **flashes** as confirmation.
 
-| N dots | Drill |
-|---|---|
-| `.` | Alphabet A-Z |
-| `..` | Numbers 0-9 |
-| `...` | Koch order |
-| `....` | 20 random letters |
-| `.....` | 20 random digits |
-| `......` | 20 random mixed letters/digits |
-| `.......` | Common callsigns |
-| `........` | Q-codes / abbreviations |
-| `.........` | Punctuation / prosigns |
-| `-` | Full drill: A-Z then 0-9 |
+| N dots | Name on LCD | Drill |
+|---|---|---|
+| `.` | ALPHABET | Alphabet A-Z |
+| `..` | NUMBERS | Numbers 0-9 |
+| `...` | KOCH | Koch order |
+| `....` | LETTERS | 20 random letters |
+| `.....` | DIGITS | 20 random digits |
+| `......` | MIXED | 20 random mixed letters/digits |
+| `.......` | CALLSIGNS | Common callsigns |
+| `........` | ABBREV | Q-codes / abbreviations |
+| `.........` | PUNCT | Punctuation / prosigns |
+| `-` | FULL | Full drill: A-Z then 0-9 |
+
+When you pick a number the display shows its name (e.g. `3 KOCH ?`) before you
+confirm with `..`, so the mapping is always visible on the device.
 
 During a drill: **`......`** (6 dots, one group) = **stop**,
 **`------`** (6 dashes, one group) = **skip**. A correct answer advances, a
