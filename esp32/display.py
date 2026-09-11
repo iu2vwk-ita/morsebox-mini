@@ -1,8 +1,8 @@
-# Display MAX7219 8x8 (in catena) su SPI hardware ESP32 — opzionale.
+# MAX7219 8x8 display (chained) on ESP32 hardware SPI - optional.
 #
-# Attivalo con DISPLAY_ENABLED = True in config.py.
+# Enable it with DISPLAY_ENABLED = True in config.py.
 # Wiring (VSPI): SCK=GPIO18, MOSI=GPIO23, CS=GPIO4, VCC=5V, GND=GND.
-# Moduli in catena: DIN del successivo nella DOUT del precedente.
+# Chained modules: the next module's DIN goes to the previous one's DOUT.
 import uasyncio as asyncio
 from machine import Pin, SPI
 from config import (DISPLAY_SCK, DISPLAY_MOSI, DISPLAY_CS, DISPLAY_MODULES)
@@ -11,7 +11,7 @@ MODULES = DISPLAY_MODULES
 COLUMNS = MODULES * 8
 INTENSITY = 8
 
-# Font 5x7 orientato per righe (7 byte, bit0 = colonna piu' a sinistra).
+# 5x7 font, row oriented (7 bytes, bit0 = leftmost column).
 F = {
     " ": (0, 0, 0, 0, 0, 0, 0),
     "A": (0x0E, 0x11, 0x11, 0x1F, 0x11, 0x11, 0x11),
@@ -73,7 +73,7 @@ def glyph(ch):
 
 
 class Max7219:
-    """Driver MAX7219 su SPI hardware VSPI."""
+    """MAX7219 driver on hardware VSPI."""
 
     def __init__(self, modules=MODULES, intensity=INTENSITY):
         self.modules = modules
@@ -83,7 +83,7 @@ class Max7219:
         self._init(intensity)
 
     def _send(self, reg, values):
-        # catena: il primo modulo ricevuto e' l'ultimo della catena
+        # chain: the first module received is the last in the chain
         self.cs(0)
         for val in reversed(values):
             self.spi.write(bytes([reg & 0x0F, val & 0xFF]))
@@ -112,7 +112,7 @@ class Max7219:
 
 
 class Screen:
-    """Testo scorrevole (WPM + ultima decodifica) sulla matrice."""
+    """Scrolling text (WPM + last decoded chars) on the matrix."""
 
     def __init__(self, modules=MODULES):
         self.hw = Max7219(modules)

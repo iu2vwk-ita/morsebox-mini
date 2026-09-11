@@ -1,9 +1,9 @@
-# Keyer iambico A/B + straight + decoder CW.
+# Iambic A/B + straight keyer + CW decoder.
 #
-# Port 1:1 della macchina a stati di server.py, ma come coroutine uasyncio
-# (sul Pi era un thread). Tick ~1 ms; i tempi sono calcolati con ticks_ms,
-# quindi il jitter del loop NON accumula. Il sidetone viene acceso/spento
-# direttamente in _set_key: latenza zero.
+# 1:1 port of the server.py state machine, but as a uasyncio coroutine
+# (on the Pi it was a thread). Tick ~1 ms; timing is computed with ticks_ms,
+# so loop jitter does NOT accumulate. The sidetone is switched on/off directly
+# in _set_key: zero latency.
 import time
 import uasyncio as asyncio
 from morse import FROM_MORSE
@@ -64,14 +64,14 @@ class Keyer:
         while True:
             now = time.ticks_ms()
             st = self.settings.get()
-            unit = 1200 // st["wpm"]          # ms per elemento (dit)
+            unit = 1200 // st["wpm"]          # ms per element (dit)
             self._unit = unit
             mode = st["mode"]
             rev = st["reverse"]
 
             pd, ph, pk = self.paddle.read()
             rd, rh, rk = self.hub.remote()
-            # reverse: scambia DIT/DAH su ENTRAMBI gli ingressi (GPIO e touch)
+            # reverse: swap DIT/DAH on BOTH inputs (GPIO and touch)
             raw_dit = pd or rd
             raw_dah = ph or rh
             dit = raw_dah if rev else raw_dit
@@ -82,7 +82,7 @@ class Keyer:
                 self._pad_dit, self._pad_dah = dit, dah
                 self.hub.broadcast({"t": "pad", "dit": dit, "dah": dah})
 
-            # debounce 5 ms
+            # 5 ms debounce
             if (dit, dah, skey) != (p_dit, p_dah, p_key):
                 p_dit, p_dah, p_key = dit, dah, skey
                 await asyncio.sleep_ms(5)
@@ -98,7 +98,7 @@ class Keyer:
                 if dah:
                     dah_mem = True
                 if time.ticks_diff(now, t_end) >= 0:
-                    # fine elemento: in modo A ricampiona, in B tiene le memorie
+                    # end of element: mode A resamples, mode B keeps the memory
                     if mode == "iambic-a":
                         dit_mem, dah_mem = dit, dah
                     self._set_key(False)
@@ -129,7 +129,7 @@ class Keyer:
                     self._set_key(True)
                     t_end = now + 3 * unit
 
-            # decoder: pausa lettera 3u, pausa parola 7u
+            # decoder: letter gap 3u, word gap 7u
             if (self._buf and not self.key_out
                     and time.ticks_diff(now, self._off_at) > 3 * unit):
                 self._flush_letter()

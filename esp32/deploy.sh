@@ -1,6 +1,6 @@
 #!/bin/bash
-# Deploy MorseBox Mini su ESP32 con MicroPython via mpremote.
-# Uso:  bash deploy.sh [porta]      (default: auto)
+# Deploy MorseBox Mini to an ESP32 with MicroPython via mpremote.
+# Usage:  bash deploy.sh [port]      (default: auto)
 set -e
 cd "$(dirname "$0")"
 PORT="${1:-}"
@@ -11,25 +11,25 @@ if [ -n "$PORT" ]; then
 fi
 
 if ! command -v mpremote >/dev/null 2>&1; then
-  echo "mpremote non trovato. Installa con:  pip install mpremote"
+  echo "mpremote not found. Install it with:  pip install mpremote"
   exit 1
 fi
 
-echo "[1/3] Copio i moduli Python…"
+echo "[1/3] Copying Python modules..."
 for f in config.py settings.py morse.py gpio.py sidetone.py \
          hub.py wsproto.py keyer.py webserver.py display.py \
-         wifi_ap.py main.py; do
+         lcd1602.py wifi_ap.py main.py; do
   echo "  -> $f"
   $MP fs cp "$f" ":$f"
 done
 
-echo "[2/3] Copio la web UI in /static…"
+echo "[2/3] Copying the web UI to /static..."
 $MP fs mkdir :static 2>/dev/null || true
 for f in index.html style.css app.js; do
   echo "  -> static/$f"
   $MP fs cp "static/$f" ":static/$f"
 done
 
-echo "[3/3] Reset ESP32…"
+echo "[3/3] Resetting the ESP32..."
 $MP reset
-echo "Fatto. Cerca la Wi-Fi IU2VWK-MORSE (morse1234) e apri http://10.42.0.1"
+echo "Done. Join the Wi-Fi IU2VWK-MORSE (morse1234) and open http://10.42.0.1"

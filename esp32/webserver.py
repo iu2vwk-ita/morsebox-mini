@@ -1,9 +1,9 @@
-# Web server HTTP + WebSocket su socket nativi MicroPython (uasyncio).
+# HTTP + WebSocket web server on native MicroPython sockets (uasyncio).
 #
-# Rotte identiche alla versione Raspberry Pi:
+# Routes identical to the Raspberry Pi version:
 #   GET  /                  -> static/index.html
-#   GET  /style.css /app.js -> file da static/
-#   GET  /api/settings      -> JSON impostazioni
+#   GET  /style.css /app.js -> files from static/
+#   GET  /api/settings      -> settings JSON
 #   POST /api/settings      -> patch + broadcast
 #   GET  /ws (Upgrade)      -> WebSocket
 import json
@@ -173,7 +173,7 @@ class WebServer:
                 if op == 0x9:                       # ping -> pong
                     client.send_raw(b"\x8a\x00")
                     continue
-                if op != 0x1:                       # solo frame testo
+                if op != 0x1:                       # text frames only
                     continue
                 try:
                     msg = json.loads(payload.decode("utf-8"))

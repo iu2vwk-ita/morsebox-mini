@@ -1,4 +1,4 @@
-# WebSocket minimale (RFC 6455) — porta 1:1 la logica di server.py del Pi.
+# Minimal WebSocket (RFC 6455) - 1:1 port of the Pi server.py logic.
 import binascii
 import hashlib
 import struct
@@ -27,7 +27,7 @@ def ws_encode(text):
 
 
 async def ws_read_frame(reader):
-    """Legge un frame dal client. Ritorna (opcode, payload)."""
+    """Read one frame from the client. Returns (opcode, payload)."""
     b1 = (await reader.readexactly(1))[0]
     b2 = (await reader.readexactly(1))[0]
     opcode = b1 & 0x0F

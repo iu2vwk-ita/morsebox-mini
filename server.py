@@ -1,13 +1,13 @@
 #!/usr/bin/env python3
-"""IU2VWK Morse Simulator — keyer iambico + web UI per Raspberry Pi.
+"""IU2VWK Morse Simulator - iambic keyer + web UI for Raspberry Pi.
 
-- Legge paddle/tasto verticale dai GPIO (con fallback mock fuori dal Pi).
-- Keyer iambico A/B + modo Diretto, velocita' 5-60 WPM, scambio DX/SX.
-- Serve la web UI, espone WebSocket per tasti remoti (touch) ed eventi live.
-- Decodifica il CW in testo. Solo stdlib: nessuna dipendenza da installare.
+- Reads the paddle/straight key from the GPIO (mock fallback outside the Pi).
+- Iambic A/B keyer + straight mode, 5-60 WPM, DX/SX swap.
+- Serves the web UI, exposes a WebSocket for remote (touch) keys and live events.
+- Decodes CW into text. Stdlib only: nothing to install.
 
 Wiring (BCM): DIT=GPIO17 (pin 11), DAH=GPIO27 (pin 13), STRAIGHT=GPIO22 (pin 15),
-GND su pin 6/9/14. Buzzer attivo (opz.) su GPIO24 (pin 18). Contatti verso GND.
+GND on pin 6/9/14. Optional active buzzer on GPIO24 (pin 18). Contacts to GND.
 """
 import argparse
 import base64
@@ -28,7 +28,7 @@ DEFAULTS = {"wpm": 20, "reverse": False, "mode": "iambic-b",
             "tone": 650, "buzzer": False, "volume": 70}
 
 DIT_PIN, DAH_PIN, KEY_PIN, BUZZ_PIN = 17, 27, 22, 24
-HOLD_TIMEOUT = 2.5  # s: dimentica i paddle remoti che non si fanno vivi
+HOLD_TIMEOUT = 2.5  # s: forget remote paddles that stop reporting
 
 MORSE = {"A": ".-", "B": "-...", "C": "-.-.", "D": "-..", "E": ".",
          "F": "..-.", "G": "--.", "H": "....", "I": "..", "J": ".---",
@@ -88,14 +88,14 @@ class Settings:
 
 # ---------------------------------------------------------------- gpio
 class GPIO:
-    """Ingressi pull-up attivi-bassi. Prova RPi.GPIO, poi gpiozero, poi mock."""
+    """Active-low pull-up inputs. Tries RPi.GPIO, then gpiozero, then mock."""
 
     def __init__(self, buzz_pins=None):
         self.backend = "mock"
         self._gpio = None
         self._dit = self._dah = self._key = None
         self._buzz = []
-        # Pin buzzer extra (BCM), es. [24, 25]. Default: solo 24 (pin 18).
+        # Extra buzzer pins (BCM), e.g. [24, 25]. Default: only 24 (pin 18).
         self.buzz_pins = list(buzz_pins) if buzz_pins else [BUZZ_PIN]
         try:
             import RPi.GPIO as G
@@ -116,7 +116,7 @@ class GPIO:
                 pass
 
     def read(self):
-        """(dit, dah, straight) True = premuto."""
+        """(dit, dah, straight) True = pressed."""
         if self._gpio is not None:
             G = self._gpio
             return (not G.input(DIT_PIN), not G.input(DAH_PIN),
@@ -151,7 +151,7 @@ class GPIO:
 
 # ---------------------------------------------------------------- keyer
 class Hub:
-    """Tiene client WS, holds remoti e history testo. Thread-safe."""
+    """Holds WS clients, remote holds and text history. Thread-safe."""
 
     def __init__(self):
         self._lock = threading.Lock()
@@ -204,7 +204,7 @@ class Hub:
 
 
 class Keyer(threading.Thread):
-    """Keyer iambico + decoder. Tick 1 ms, eventi via hub.broadcast."""
+    """Iambic keyer + decoder. 1 ms tick, events via hub.broadcast."""
 
     def __init__(self, gpio, settings, hub):
         super().__init__(daemon=True)
@@ -213,8 +213,8 @@ class Keyer(threading.Thread):
         self.hub = hub
         self.key_out = False
         self._stop = threading.Event()
-        self.screen = None  # display a matrice (opzionale)
-        self.sidetone = None  # nota verso la cassa (opzionale)
+        self.screen = None  # matrix display (optional)
+        self.sidetone = None  # note to the speaker (optional)
 
     def _set_key(self, on):
         if on == self.key_out:
@@ -267,7 +267,7 @@ class Keyer(threading.Thread):
 
             pd, ph, pk = self.gpio.read()
             rd, rh, rk = self.hub.remote()
-            # reverse: scambia DIT/DAH su ENTRAMBI gli ingressi (GPIO e touch)
+            # reverse: swap DIT/DAH on BOTH inputs (GPIO and touch)
             raw_dit = pd or rd
             raw_dah = ph or rh
             dit = raw_dah if rev else raw_dit
@@ -278,7 +278,7 @@ class Keyer(threading.Thread):
                 self._pad_dit, self._pad_dah = dit, dah
                 self.hub.broadcast({"t": "pad", "dit": dit, "dah": dah})
 
-            # debounce 5 ms
+            # 5 ms debounce
             if (dit, dah, skey) != (p_dit, p_dah, p_key):
                 p_dit, p_dah, p_key = dit, dah, skey
                 time.sleep(0.005)
@@ -294,7 +294,7 @@ class Keyer(threading.Thread):
                 if dah:
                     dah_mem = True
                 if now >= t_end:
-                    # fine elemento: in modo A ricampiona, in B tiene le memorie
+                    # end of element: mode A resamples, mode B keeps the memory
                     if mode == "iambic-a":
                         dit_mem, dah_mem = dit, dah
                     self._set_key(False)
@@ -325,7 +325,7 @@ class Keyer(threading.Thread):
                     self._set_key(True)
                     t_end = now + 3 * unit
 
-            # decoder: pausa lettera 3u, pausa parola 7u
+            # decoder: letter gap 3u, word gap 7u
             if self._buf and not self.key_out and now - self._off_at > 3 * unit:
                 self._flush_letter()
                 word_sent = False
@@ -544,13 +544,13 @@ def main():
     ap.add_argument("--host", default="0.0.0.0")
     ap.add_argument("--port", type=int, default=80)
     ap.add_argument("--audio-in", action="store_true",
-                    help="decoder audio (click) dal microfono, off di default")
+                    help="audio (click) decoder from the microphone, off by default")
     ap.add_argument("--buzzer-mode", default="passive", choices=["active", "passive"],
-                    help="active = DC on/off (buzzer con oscillatore), "
-                         "passive = PWM (piezo pilotabile)")
+                    help="active = DC on/off (buzzer with oscillator), "
+                         "passive = PWM (drivable piezo)")
     ap.add_argument("--buzz-pins", default="24",
-                    help="GPIO BCM dei piezo separati da virgola, es. '24' o "
-                         "'24,25'. Tutti suonano insieme (default: 24 = pin 18)")
+                    help="comma-separated BCM GPIOs of the piezo, e.g. '24' or "
+                         "'24,25'. All sound together (default: 24 = pin 18)")
     args = ap.parse_args()
     try:
         buzz_pins = [int(p) for p in args.buzz_pins.replace(";", ",").split(",")
@@ -571,30 +571,30 @@ def main():
         import display
         screen = display.Screen()
         if screen.hw is not None:
-            print("Display MAX7219: %s" % screen.hw.backend, flush=True)
+            print("MAX7219 display: %s" % screen.hw.backend, flush=True)
         else:
-            print("Display: non rilevato (nessuna matrice), solo web UI", flush=True)
+            print("Display: not detected (no matrix), web UI only", flush=True)
         _apply_screen({"screen": screen}, {"wpm": settings.get()["wpm"]})
         keyer.screen = screen
     except Exception as e:
-        print("Display non inizializzato: %s" % e, flush=True)
+        print("Display not initialized: %s" % e, flush=True)
 
     sidetone = None
     decoder = None
     try:
         import audio
-        # Sidetone su buzzer GPIO (zero latenza). Active = DC on/off (buzzer
-        # con oscillatore), passive = PWM (piezo pilotabile).
+        # Sidetone on the GPIO buzzer (zero latency). Active = DC on/off
+        # (buzzer with oscillator), passive = PWM (drivable piezo).
         sidetone = audio.GPIOTone(freq=settings.get()["tone"],
                                   mode=args.buzzer_mode, pins=buzz_pins)
         sidetone.set_volume(settings.get()["volume"])
         if sidetone._ok:
             keyer.sidetone = sidetone
-            print("Sidetone buzzer GPIO %s (%s, zero latenza): ok"
+            print("Sidetone GPIO buzzer %s (%s, zero latency): ok"
                   % (buzz_pins, args.buzzer_mode), flush=True)
         else:
             sidetone = None
-            print("Buzzer GPIO non disponibile (serve RPi.GPIO)", flush=True)
+            print("GPIO buzzer not available (RPi.GPIO required)", flush=True)
 
         def on_key(on):
             hub.broadcast({"t": "key", "on": on, "audio": True})
@@ -613,7 +613,7 @@ def main():
             decoder = audio.CwAudioDecoder(on_key=on_key, on_char=on_char)
             decoder.start()
     except Exception as e:
-        print("Audio non inizializzato: %s" % e, flush=True)
+        print("Audio not initialized: %s" % e, flush=True)
 
     srv = ThreadingHTTPServer((args.host, args.port), Handler)
     srv.daemon_threads = True
@@ -623,7 +623,7 @@ def main():
     srv.screen = screen
     srv.sidetone = sidetone
     srv.decoder = decoder
-    print("IU2VWK Morse Simulator su http://%s:%d (gpio: %s)"
+    print("IU2VWK Morse Simulator on http://%s:%d (gpio: %s)"
           % (args.host, args.port, gpio.backend), flush=True)
     try:
         srv.serve_forever()

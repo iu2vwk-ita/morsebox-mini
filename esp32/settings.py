@@ -1,4 +1,4 @@
-# Impostazioni persistenti su settings.json — stessa semantica del Pi.
+# Persistent settings on settings.json - same semantics as the Pi version.
 import json
 from config import DEFAULTS, SETTINGS_FILE
 

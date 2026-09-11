@@ -8,7 +8,7 @@ PROJECT = os.path.dirname(HERE)
 sys.path.insert(0, os.path.join(HERE, "stubs"))
 sys.path.insert(0, PROJECT)
 
-# MicroPython time API sul time di CPython
+# MicroPython time API on top of CPython's time
 time.ticks_ms = lambda: int(time.monotonic() * 1000) & 0x3FFFFFFF
 time.ticks_diff = lambda a, b: a - b
 
@@ -70,12 +70,12 @@ async def scenario_letter(paddle, hub, settings):
     k = keyer.Keyer(paddle, settings, hub)
     task = asyncio.create_task(k.run())
     await asyncio.sleep(0.02)
-    # dit: tengo premuto 40 ms (l'elemento dura comunque 1 unit = 60 ms)
+    # dit: hold 40 ms (the element still lasts 1 unit = 60 ms)
     paddle.dit = True
     await asyncio.sleep(0.04)
     paddle.dit = False
     await asyncio.sleep(0.10)
-    # dah: tengo premuto 100 ms (elemento = 3 unit = 180 ms)
+    # dah: hold 100 ms (element = 3 units = 180 ms)
     paddle.dah = True
     await asyncio.sleep(0.10)
     paddle.dah = False
@@ -107,27 +107,28 @@ async def scenario_straight(paddle, hub):
 
 
 async def main():
-    # ---- 1. keyer iambic A: dit + dah = "A" (mode A non ha memoria extra)
+    # ---- 1. iambic A keyer: dit + dah = "A" (mode A has no extra memory)
     p, h, s = FakePaddle(), FakeHub(), FakeSettings(mode="iambic-a")
     await scenario_letter(p, h, s)
-    assert h.history.strip() == "A", "atteso A, ottenuto %r" % h.history
+    assert h.history.strip() == "A", "expected A, got %r" % h.history
     key_events = [e for e in h.events if e.get("t") == "key"]
-    assert any(e["on"] for e in key_events), "nessun key on"
-    print("PASS keyer iambic A: dit+dah -> 'A' (%d eventi key)" % len(key_events))
+    assert any(e["on"] for e in key_events), "no key on"
+    print("PASS keyer iambic A: dit+dah -> 'A' (%d key events)"
+          % len(key_events))
 
-    # ---- 1b. keyer iambic B: un tap dit aggiunge un elemento (memoria B)
+    # ---- 1b. iambic B keyer: a dit tap adds one element (mode B memory)
     pb, hb = FakePaddle(), FakeHub()
     await scenario_tap(pb, hb, FakeSettings(mode="iambic-b"))
-    assert hb.history.strip() == "I", "iambic B: atteso I, ottenuto %r" % hb.history
-    print("PASS keyer iambic B: tap dit -> '..' (memoria di modo B)")
+    assert hb.history.strip() == "I", "iambic B: expected I, got %r" % hb.history
+    print("PASS keyer iambic B: dit tap -> '..' (mode B memory)")
 
-    # ---- 1c. keyer iambic A: un tap dit NON aggiunge elementi
+    # ---- 1c. iambic A keyer: a dit tap does NOT add elements
     pa, ha = FakePaddle(), FakeHub()
     await scenario_tap(pa, ha, FakeSettings(mode="iambic-a"))
-    assert ha.history.strip() == "E", "iambic A: atteso E, ottenuto %r" % ha.history
-    print("PASS keyer iambic A: tap dit -> '.'")
+    assert ha.history.strip() == "E", "iambic A: expected E, got %r" % ha.history
+    print("PASS keyer iambic A: dit tap -> '.'")
 
-    # ---- 2. keyer reverse: con reverse, il contatto dit produce un dah
+    # ---- 2. reverse keyer: with reverse, the dit contact sends a dah
     p2, h2 = FakePaddle(), FakeHub()
     s2 = FakeSettings(reverse=True, mode="iambic-a")
     k2 = keyer.Keyer(p2, s2, h2)
@@ -138,23 +139,23 @@ async def main():
     p2.dit = False
     await asyncio.sleep(0.35)
     t2.cancel()
-    assert h2.history.strip() == "T", "reverse: atteso T, ottenuto %r" % h2.history
-    print("PASS keyer reverse: contatto dit -> dah -> 'T'")
+    assert h2.history.strip() == "T", "reverse: expected T, got %r" % h2.history
+    print("PASS keyer reverse: dit contact -> dah -> 'T'")
 
     # ---- 3. straight mode
     p3, h3 = FakePaddle(), FakeHub()
     await scenario_straight(p3, h3)
     k3_events = [e for e in h3.events if e.get("t") == "key"]
-    assert k3_events and k3_events[0]["on"], "straight: nessun key on"
-    assert not k3_events[-1]["on"], "straight: key non rilasciato"
-    print("PASS keyer straight: key on/off corretti")
+    assert k3_events and k3_events[0]["on"], "straight: no key on"
+    assert not k3_events[-1]["on"], "straight: key not released"
+    print("PASS keyer straight: correct key on/off")
 
-    # ---- 4. WS accept (vettore RFC 6455)
+    # ---- 4. WS accept (RFC 6455 vector)
     acc = wsproto.ws_accept("dGhlIHNhbXBsZSBub25jZQ==")
     assert acc == "s3pPLMBiTxaQ9kYGzzhZRbK+xOo=", acc
     print("PASS WebSocket handshake:", acc)
 
-    # ---- 5. WS encode (short + 16 bit)
+    # ---- 5. WS encode (short + 16-bit)
     assert wsproto.ws_encode("hi") == b"\x81\x02hi"
     long = "x" * 200
     frame = wsproto.ws_encode(long)
@@ -162,7 +163,7 @@ async def main():
     assert frame[2:4] == b"\x00\xc8" and frame[4:] == long.encode()
     print("PASS WebSocket encode short + 16-bit")
 
-    # ---- 6. WS decode frame mascherato
+    # ---- 6. WS decode masked frame
     class FakeReader:
         def __init__(self, data):
             self.data = data
@@ -177,21 +178,21 @@ async def main():
     frame = bytes([0x81, 0x80 | len(payload)]) + mask + masked
     op, dec = await wsproto.ws_read_frame(FakeReader(frame))
     assert op == 0x1 and dec == payload, (op, dec)
-    print("PASS WebSocket decode frame mascherato")
+    print("PASS WebSocket decode masked frame")
 
-    # ---- 7. settings clamp (modulo reale)
+    # ---- 7. settings clamp (real module)
     s = settings_mod.Settings()
-    d = s.patch({"wpm": 999, "tone": 10, "volume": -5, "mode": "boh"})
+    d = s.patch({"wpm": 999, "tone": 10, "volume": -5, "mode": "bogus"})
     assert d["wpm"] == 60 and d["tone"] == 400 and d["volume"] == 0
     assert d["mode"] == "iambic-b"
     os.remove("settings.json")
     print("PASS settings clamp")
 
-    # ---- 8. tabella morse
+    # ---- 8. morse table
     assert FROM_MORSE[".-"] == "A" and FROM_MORSE["..."] == "S"
     print("PASS morse FROM_MORSE")
 
-    # ---- 9. web server: parsing, rotte, handshake WS
+    # ---- 9. web server: parsing, routes, WS handshake
     class FakeWriter:
         def __init__(self):
             self.data = b""
@@ -253,16 +254,16 @@ async def main():
     method, path, headers, body = await srv._read_request(r)
     assert method == "GET" and path == "/ws"
     assert headers["upgrade"] == "websocket" and body == b""
-    print("PASS web: parsing richiesta WS")
+    print("PASS web: WS request parsing")
 
     w = FakeWriter()
-    r = FakeReqReader(bytes([0x88, 0x00]))   # frame close non mascherato
+    r = FakeReqReader(bytes([0x88, 0x00]))   # unmasked close frame
     await srv._serve_ws(r, w, "dGhlIHNhbXBsZSBub25jZQ==")
     assert b"101 Switching Protocols" in w.data
     assert b"s3pPLMBiTxaQ9kYGzzhZRbK+xOo=" in w.data
-    print("PASS web: handshake 101 + Sec-WebSocket-Accept")
+    print("PASS web: 101 handshake + Sec-WebSocket-Accept")
 
-    print("\nTUTTI I TEST PASSATI")
+    print("\nALL TESTS PASSED")
 
 
 asyncio.run(main())

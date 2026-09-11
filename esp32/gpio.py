@@ -1,4 +1,4 @@
-# Ingressi paddle/straight key: pull-up interno, attivi bassi.
+# Paddle / straight key inputs: internal pull-up, active low.
 from machine import Pin
 from config import DIT_PIN, DAH_PIN, KEY_PIN
 
@@ -12,6 +12,6 @@ class Paddle:
         self._key = Pin(KEY_PIN, Pin.IN, Pin.PULL_UP)
 
     def read(self):
-        """(dit, dah, straight) True = contatto chiuso verso GND."""
+        """(dit, dah, straight) True = contact closed to GND."""
         return (not self._dit.value(), not self._dah.value(),
                 not self._key.value())

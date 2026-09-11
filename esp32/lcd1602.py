@@ -1,17 +1,17 @@
-# LCD1602 con backpack I2C (PCF8574/PCF8574T) — 16x2 caratteri.
+# LCD1602 with I2C backpack (PCF8574/PCF8574T) - 16x2 characters.
 #
-# Collegamento: VCC->5V (VIN), GND->GND, SDA->GPIO21, SCL->GPIO22.
-# Riga 1: "WPM xx"   Riga 2: testo Morse decodificato.
+# Wiring: VCC->5V (VIN), GND->GND, SDA->GPIO21, SCL->GPIO22.
+# Line 1: "WPM xx"   Line 2: decoded Morse text.
 #
-# Il refresh I2C avviene in una coroutine separata, quindi NON introduce
-# latenza nel keyer (add_char/set_wpm aggiornano solo il buffer).
+# The I2C refresh runs in a separate coroutine, so it does NOT add latency to
+# the keyer (add_char/set_wpm only update the buffer).
 import time
 import uasyncio as asyncio
 from machine import I2C, Pin
 from config import (LCD_I2C_ID, LCD_SDA, LCD_SCL, LCD_ADDR,
                     LCD_COLS, LCD_ROWS)
 
-# bit del PCF8574 sul backpack classico FC-113
+# PCF8574 bits on the classic FC-113 backpack
 _RS = 0x01
 _E = 0x04
 _BL = 0x08
@@ -52,15 +52,15 @@ class I2cLcd:
         self._byte(ord(ch), 1)
 
     def _init(self):
-        # sequenza di reset HD44780 in 4 bit
+        # HD44780 4-bit reset sequence
         for _ in range(3):
             self._nibble(0x03, 0)
             time.sleep_ms(5)
         self._nibble(0x02, 0)
         time.sleep_ms(1)
-        self.command(0x28)   # 4 bit, 2 righe, font 5x8
-        self.command(0x0C)   # display on, cursore off
-        self.command(0x06)   # incremento automatico
+        self.command(0x28)   # 4 bit, 2 lines, 5x8 font
+        self.command(0x0C)   # display on, cursor off
+        self.command(0x06)   # auto increment
         self.clear()
 
     # ---------------------------------------------------------- api
@@ -83,7 +83,7 @@ _MODE_LABEL = {"iambic-a": "IAMB A",
 
 
 class Screen:
-    """Interfaccia usata dal keyer: set_wpm / set_mode / add_char / run."""
+    """Interface used by the keyer: set_wpm / set_mode / add_char / run."""
 
     def __init__(self):
         i2c = I2C(LCD_I2C_ID, scl=Pin(LCD_SCL), sda=Pin(LCD_SDA),

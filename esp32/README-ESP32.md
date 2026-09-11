@@ -1,42 +1,47 @@
-# MorseBox Mini — versione ESP32 / MicroPython
+# MorseBox Mini - ESP32 / MicroPython version
 
-Port della versione Raspberry Pi su **ESP32 classico** con **MicroPython**.
-La web UI è **identica** a quella del Pi: gli stessi file `static/index.html`,
-`static/style.css`, `static/app.js` vengono serviti senza modifiche, e il
-protocollo WebSocket è lo stesso.
+Port of the Raspberry Pi version to a classic **ESP32** with **MicroPython**.
+The web UI is **identical** to the Pi one: the same `static/index.html`,
+`static/style.css`, `static/app.js` files are served unchanged, and the
+WebSocket protocol is the same.
 
-## Cosa fa
+## What it does
 
-- L'ESP32 crea l'access point **`IU2VWK-MORSE`** (password `morse1234`).
-- Web server HTTP + WebSocket sulla porta **80**, IP **10.42.0.1**
-  (stesso IP del Pi: i QR sul coperchio continuano a funzionare).
-- Keyer iambic A / B + straight, 5–60 WPM, reverse DX/SX, decoder CW in testo.
-- Sidetone **PWM hardware a latenza zero** su 1–3 piezo, nessuna pipeline audio.
-- Display MAX7219 8x8 opzionale.
+- The ESP32 creates the access point **`IU2VWK-MORSE`** (password `morse1234`).
+- HTTP + WebSocket web server on port **80**, IP **10.42.0.1**
+  (same IP as the Pi: the lid QR codes keep working).
+- Iambic A / B + straight keyer, 5-60 WPM, reverse DX/SX, CW to text decoder.
+- **Zero-latency hardware PWM sidetone** on 1-3 piezos, no audio pipeline.
+- Optional MAX7219 8x8 display.
+- Optional **LCD1602 I2C** display: line 1 `WPM xx` + keyer mode, line 2 the
+  decoded CW text.
 
 ## Pinout
 
-| Funzione | GPIO | Modo |
+| Function | GPIO | Mode |
 |---|---|---|
-| DIT | 32 | `Pin.IN, PULL_UP` (contatto verso GND) |
-| DAH | 33 | `Pin.IN, PULL_UP` (contatto verso GND) |
-| STRAIGHT | 14 | `Pin.IN, PULL_UP` (contatto verso GND) |
+| DIT | 32 | `Pin.IN, PULL_UP` (contact to GND) |
+| DAH | 33 | `Pin.IN, PULL_UP` (contact to GND) |
+| STRAIGHT | 14 | `Pin.IN, PULL_UP` (contact to GND) |
 | PIEZO 1 | 25 | `machine.PWM` |
 | PIEZO 2 | 26 | `machine.PWM` |
 | PIEZO 3 | 27 | `machine.PWM` |
-| MAX7219 SCK | 18 | SPI hardware VSPI |
-| MAX7219 MOSI | 23 | SPI hardware VSPI |
-| MAX7219 CS | 4 | uscita |
+| MAX7219 SCK | 18 | hardware SPI VSPI |
+| MAX7219 MOSI | 23 | hardware SPI VSPI |
+| MAX7219 CS | 4 | output |
+| LCD1602 SDA | 21 | I2C |
+| LCD1602 SCL | 22 | I2C |
 
-I tre piezo suonano insieme: basta collegarne anche uno solo.
-I contatti dei tasti vanno verso GND; i pull-up sono interni all'ESP32.
+The three piezos sound together: even one is enough.
+The key contacts go to GND; the pull-ups are internal to the ESP32.
+For the LCD1602 I2C backpack: `VCC` to 5V (VIN), `GND` to GND.
 
-## Requisiti
+## Requirements
 
-- ESP32 (WROOM-32) con firmware MicroPython recente (≥ 1.20).
-- `mpremote` sul PC: `pip install mpremote`.
+- ESP32 (WROOM-32) with recent MicroPython firmware (>= 1.20).
+- `mpremote` on the PC: `pip install mpremote`.
 
-Se l'ESP32 non ha MicroPython, flashalo con esptool:
+If the ESP32 has no MicroPython, flash it with esptool:
 
 ```bash
 esptool.py --chip esp32 --port /dev/ttyUSB0 erase_flash
@@ -47,62 +52,63 @@ esptool.py --chip esp32 --port /dev/ttyUSB0 write_flash -z 0x1000 \
 ## Deploy
 
 ```bash
-bash deploy.sh                 # porta auto
-bash deploy.sh /dev/ttyUSB0    # porta esplicita
+bash deploy.sh                 # auto port
+bash deploy.sh /dev/ttyUSB0    # explicit port
 ```
 
-Lo script copia i `.py` nella root dell'ESP32, crea `/static` con la web UI e
-fa il reset. Al boot parte `main.py`.
+The script copies the `.py` files to the ESP32 root, creates `/static` with the
+web UI and resets the board. On boot `main.py` starts.
 
-## Test (senza hardware)
+## Test (no hardware)
 
-La logica è verificabile su PC con CPython, usando stub di `uasyncio`/`time`:
+The logic can be verified on a PC with CPython, using `uasyncio`/`time` stubs:
 
 ```bash
 python3 tests/test_all.py
 ```
 
-Copre: keyer iambic A/B, reverse, straight, decoder, handshake WebSocket,
-encode/decode frame, parsing HTTP, rotte e path traversal.
+It covers: iambic A/B keyer, reverse, straight, decoder, WebSocket handshake,
+frame encode/decode, HTTP parsing, routes and path traversal.
 
-## Uso
+## Usage
 
-1. Alimenta la scheda, attendi qualche secondo.
-2. Dal telefono unisciti alla Wi-Fi **`IU2VWK-MORSE`** (password `morse1234`).
-   Il telefono dirà "senza internet": è normale, resta su quella rete.
-3. Apri **`http://10.42.0.1`**.
-4. Keya con il paddle, il tasto straight, i paddle touch o la tastiera
-   (`Z` / `X` / barra spaziatrice).
+1. Power the board, wait a few seconds.
+2. On your phone, join the Wi-Fi **`IU2VWK-MORSE`** (password `morse1234`).
+   The phone will say "no internet": that is normal, stay on that network.
+3. Open **`http://10.42.0.1`**.
+4. Key with the paddle, the straight key, the touch paddles or the keyboard
+   (`Z` / `X` / space bar).
 
-## Configurazione
+## Configuration
 
 In `config.py`:
 
-- `DISPLAY_ENABLED = True` per attivare la matrice MAX7219 (default `False`).
-- `BUZZER_MODE = "passive"` per i piezo (default). `"active"` per buzzer con
-  oscillatore (pilotaggio DC on/off).
-- `AP_SSID` / `AP_PASS` / `AP_IP` per cambiare rete.
+- `LCD_ENABLED = True` to use the LCD1602 I2C display (default `True`).
+- `DISPLAY_ENABLED = True` to use the MAX7219 matrix (default `False`).
+- `BUZZER_MODE = "passive"` for piezos (default). `"active"` for buzzers with
+  a built-in oscillator (DC on/off drive).
+- `AP_SSID` / `AP_PASS` / `AP_IP` to change the network.
 
-Le impostazioni di WPM, tono, volume, modo e reverse sono salvate in
-`settings.json` e persistono tra i riavvii.
+The WPM, tone, volume, mode and reverse settings are saved in `settings.json`
+and persist across reboots.
 
-## Differenze rispetto alla versione Pi
+## Differences from the Pi version
 
 | | Raspberry Pi | ESP32 MicroPython |
 |---|---|---|
-| Concorrenza | thread | singolo event loop `uasyncio` |
-| Web server | `http.server` + WS custom | socket nativi `uasyncio` + WS custom |
-| AP | hostapd + dnsmasq | `network.WLAN(AP_IF)` nativo |
-| IP AP | 10.42.0.1 | 10.42.0.1 |
-| Hostname mDNS | `iu2vwk-morse.local` | non disponibile (usa l'IP) |
+| Concurrency | threads | single `uasyncio` event loop |
+| Web server | `http.server` + custom WS | native `uasyncio` sockets + custom WS |
+| AP | hostapd + dnsmasq | native `network.WLAN(AP_IF)` |
+| AP IP | 10.42.0.1 | 10.42.0.1 |
+| mDNS hostname | `iu2vwk-morse.local` | not available (use the IP) |
 | Deploy | `install.sh` + systemd | `deploy.sh` + `main.py` |
-| Decoder audio da mic | sì (opzionale) | **no** (escluso) |
+| Mic audio decoder | yes (optional) | **no** (dropped) |
 
-## Note tecniche
+## Technical notes
 
-- Il keyer gira a tick ~1 ms e usa `time.ticks_ms()`: il jitter del loop non
-  accumula, perché ogni elemento è calcolato dall'istante corrente.
-- Il sidetone è acceso/spento direttamente dallo stato key tramite
-  `machine.PWM`: nessun buffer audio, nessun ritardo percepibile.
-- `hub.broadcast()` non blocca mai il keyer: ogni client WebSocket ha una coda;
-  un client lento viene scartato senza fermare il tasto.
+- The keyer runs at a ~1 ms tick and uses `time.ticks_ms()`: loop jitter does
+  not accumulate, because every element is computed from the current instant.
+- The sidetone is switched directly by the key state through `machine.PWM`:
+  no audio buffer, no perceivable delay.
+- `hub.broadcast()` never blocks the keyer: every WebSocket client has a queue;
+  a slow client is dropped without stopping the key.

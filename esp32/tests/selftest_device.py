@@ -1,11 +1,11 @@
-# Self-test ON-DEVICE (gira sull'ESP32 con MicroPython).
+# ON-DEVICE self-test (runs on the ESP32 with MicroPython).
 #
-# Esegui con:   mpremote run tests/selftest_device.py
-# IMPORTANTE: disabilita prima l'autostart (rinomina main.py in main.py.bak e
-# resetta), altrimenti main.py occupa la REPL e la porta 80.
+# Run it with:   mpremote run tests/selftest_device.py
+# IMPORTANT: disable autostart first (rename main.py to main.py.bak and reset),
+# otherwise main.py holds the REPL and port 80.
 #
-# Verifica senza fili GPIO: AP, IP, GPIO, PWM, HTTP, WebSocket, keyer+decoder
-# (guidato dai paddle remoti, lo stesso percorso del touch e della tastiera).
+# Checks with no GPIO wires: AP, IP, GPIO, PWM, HTTP, WebSocket, keyer+decoder
+# (driven by remote paddles, the same path used by touch and keyboard).
 import gc
 import json
 import time
@@ -94,23 +94,23 @@ def pwm_duty(pwm):
 
 
 async def run_test(host):
-    # ---------------------------------------------------------- rete
+    # ---------------------------------------------------------- network
     ap = start_ap()
-    check("AP attivo", ap.active())
+    check("AP active", ap.active())
     check("AP IP", ap.ifconfig()[0] == config.AP_IP, ap.ifconfig()[0])
     print("      ifconfig:", ap.ifconfig())
-    print("      RAM libera: %d byte" % gc.mem_free())
+    print("      free RAM: %d bytes" % gc.mem_free())
 
     # ---------------------------------------------------------- GPIO
     settings = Settings()
     hub = Hub()
     paddle = Paddle()
     r = paddle.read()
-    check("GPIO letti (a riposo)", r == (False, False, False), str(r))
+    check("GPIO read (idle)", r == (False, False, False), str(r))
 
     # ---------------------------------------------------------- PWM
     st = Sidetone(config.BUZZ_PINS, freq=settings.get()["tone"])
-    check("PWM istanziato", st._ok, "pin %s" % (config.BUZZ_PINS,))
+    check("PWM created", st._ok, "pins %s" % (config.BUZZ_PINS,))
     if st._ok:
         st.set(True)
         time.sleep_ms(20)
@@ -121,13 +121,13 @@ async def run_test(host):
         check("PWM on/off", on > 0 and off == 0, "on=%s off=%s" % (on, off))
         try:
             f = st._pwms[0].freq()
-            check("PWM frequenza", abs(f - settings.get()["tone"]) <= 1,
+            check("PWM frequency", abs(f - settings.get()["tone"]) <= 1,
                   "%s Hz" % f)
         except Exception as e:
-            check("PWM frequenza", False, str(e))
+            check("PWM frequency", False, str(e))
 
-    # ---------------------------------------------------------- avvio stack
-    settings.patch({"mode": "iambic-a", "wpm": 20})   # A: niente elemento extra
+    # ---------------------------------------------------------- start stack
+    settings.patch({"mode": "iambic-a", "wpm": 20})   # A: no extra element
     keyer = Keyer(paddle, settings, hub, sidetone=st)
     server = WebServer(settings, hub, paddle)
     asyncio.create_task(keyer.run())
@@ -173,7 +173,7 @@ async def run_test(host):
 
     ct = asyncio.create_task(collect())
     await asyncio.sleep_ms(150)
-    check("WS hello ricevuto",
+    check("WS hello received",
           any(b"hello" in f for f in frames))
 
     async def paddle(dit, dah, key, ms):
@@ -182,7 +182,7 @@ async def run_test(host):
         await writer.drain()
         await asyncio.sleep_ms(ms)
 
-    # dit poi dah -> in iambic A = "A"
+    # dit then dah -> iambic A = "A"
     await paddle(True, False, False, 40)
     await paddle(False, False, False, 150)
     await paddle(False, True, False, 100)
@@ -201,16 +201,16 @@ async def run_test(host):
             txt += m.get("ch", "")
         elif m.get("t") == "key":
             keys += 1
-    check("WS eventi key", keys >= 4, "%d eventi" % keys)
-    check("keyer decodifica A", txt.strip() == "A", repr(txt))
+    check("WS key events", keys >= 4, "%d events" % keys)
+    check("keyer decodes A", txt.strip() == "A", repr(txt))
     writer.close()
 
-    # ---------------------------------------------------------- esito
-    print("\n==================== RISULTATO ====================")
+    # ---------------------------------------------------------- result
+    print("\n==================== RESULT ====================")
     print("PASS: %d   FAIL: %d" % (len(PASS), len(FAIL)))
     if FAIL:
-        print("FALLITI:", ", ".join(FAIL))
-    print("===================================================")
+        print("FAILED:", ", ".join(FAIL))
+    print("================================================")
 
 
 async def main():
@@ -219,7 +219,7 @@ async def main():
     except Exception as e:
         import sys
         sys.print_exception(e)
-        print("SELF-TEST INTERROTTO:", e)
+        print("SELF-TEST ABORTED:", e)
 
 
 asyncio.run(main())

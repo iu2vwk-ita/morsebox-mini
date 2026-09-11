@@ -1,8 +1,8 @@
-# Hub: registry dei client WebSocket, holds remoti, history testo.
+# Hub: WebSocket client registry, remote holds, text history.
 #
-# Tutto gira nel singolo event loop uasyncio: niente lock, niente thread.
-# broadcast() non blocca MAI il keyer: accoda la stringa JSON per client e
-# il writer di ogni client la svuota. Client lento = coda piena = scartato.
+# Everything runs in the single uasyncio event loop: no locks, no threads.
+# broadcast() NEVER blocks the keyer: it queues the JSON string per client and
+# each client's writer drains it. Slow client = full queue = dropped.
 import json
 import time
 from config import HOLD_TIMEOUT_MS
@@ -22,7 +22,7 @@ class Client:
         if len(self.queue) < QUEUE_MAX:
             self.queue.append(msg)
         else:
-            # client troppo lento: lo abbandoniamo, il keyer non si ferma
+            # client too slow: drop it, the keyer must keep running
             self.closed = True
 
     def send_raw(self, raw):
@@ -36,7 +36,7 @@ class Hub:
         self.holds = {}          # id(client) -> {dit,dah,key,ts}
         self.history = ""
 
-    # ---------------------------------------------------------- client
+    # ---------------------------------------------------------- clients
     def add(self, client):
         self.clients.append(client)
 
@@ -48,7 +48,7 @@ class Hub:
             pass
         self.holds.pop(id(client), None)
 
-    # ---------------------------------------------------------- paddles remoti
+    # ---------------------------------------------------------- remote paddles
     def hold(self, client, dit, dah, key):
         self.holds[id(client)] = {"dit": bool(dit), "dah": bool(dah),
                                   "key": bool(key), "ts": time.ticks_ms()}
@@ -66,7 +66,7 @@ class Hub:
                 del self.holds[cid]
         return d, h, k
 
-    # ---------------------------------------------------------- testo
+    # ---------------------------------------------------------- text
     def push_text(self, ch):
         self.history = (self.history + ch)[-120:]
 

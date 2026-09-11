@@ -1,7 +1,7 @@
-# IU2VWK MorseBox Mini — entry point ESP32 / MicroPython.
+# IU2VWK MorseBox Mini - ESP32 / MicroPython entry point.
 #
-# Al boot: alza l'access point, inizializza paddle/piezo, avvia l'event loop
-# con keyer + web server (+ display MAX7219 se abilitato).
+# On boot: bring up the access point, init paddle/piezo, start the event loop
+# with keyer + web server (+ MAX7219 display if enabled).
 import gc
 import uasyncio as asyncio
 from machine import freq
@@ -18,13 +18,13 @@ from webserver import WebServer
 
 def main():
     try:
-        freq(240000000)          # 240 MHz: piu' margine per il tick da 1 ms
+        freq(240000000)          # 240 MHz: more headroom for the 1 ms tick
     except Exception:
         pass
     gc.collect()
 
     ap = start_ap()
-    print("AP '%s' su http://%s" % (config.AP_SSID, ap.ifconfig()[0]))
+    print("AP '%s' at http://%s" % (config.AP_SSID, ap.ifconfig()[0]))
 
     settings = Settings()
     hub = Hub()
@@ -33,24 +33,25 @@ def main():
     sidetone = Sidetone(config.BUZZ_PINS, freq=settings.get()["tone"],
                         mode=config.BUZZER_MODE)
     sidetone.set_volume(settings.get()["volume"])
-    print("Piezo PWM:", config.BUZZ_PINS, "ok" if sidetone._ok else "assenti")
+    print("Piezo PWM:", config.BUZZ_PINS,
+          "ok" if sidetone._ok else "not found")
 
     screen = None
     if config.LCD_ENABLED:
         try:
             import lcd1602
             screen = lcd1602.Screen()
-            print("Display LCD1602 I2C attivo")
+            print("LCD1602 I2C display active")
         except Exception as e:
-            print("LCD non inizializzato:", e)
+            print("LCD not initialized:", e)
             screen = None
     elif config.DISPLAY_ENABLED:
         try:
             import display
             screen = display.Screen()
-            print("Display MAX7219 attivo")
+            print("MAX7219 display active")
         except Exception as e:
-            print("Display non inizializzato:", e)
+            print("Display not initialized:", e)
             screen = None
 
     def on_settings(data):

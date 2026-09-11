@@ -1,4 +1,4 @@
-# Tabella codice Morse e inversa — identica a server.py del Pi.
+# Morse code table and its reverse - identical to the Pi server.py.
 MORSE = {"A": ".-", "B": "-...", "C": "-.-.", "D": "-..", "E": ".",
          "F": "..-.", "G": "--.", "H": "....", "I": "..", "J": ".---",
          "K": "-.-", "L": ".-..", "M": "--", "N": "-.", "O": "---",

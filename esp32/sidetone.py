@@ -1,7 +1,7 @@
-# Sidetone PWM hardware multi-piezo — latenza zero (nessuna pipeline audio).
+# Hardware PWM multi-piezo sidetone - zero latency (no audio pipeline).
 #
-# Tutti i pin suonano insieme: quando il key va giu' il duty passa subito al
-# valore attivo, quando va su torna a 0. Nessun buffer, nessun thread audio.
+# All pins sound together: when the key goes down the duty jumps straight to
+# the active value, when it goes up it returns to 0. No buffer, no audio thread.
 from machine import Pin, PWM
 from config import BUZZER_MODE
 
@@ -19,7 +19,7 @@ class Sidetone:
                 try:
                     pwm = PWM(Pin(p), freq=self.freq, duty_u16=0)
                 except TypeError:
-                    # firmware piu' vecchi: niente duty_u16 nel costruttore
+                    # older firmware: no duty_u16 in the constructor
                     pwm = PWM(Pin(p))
                     pwm.freq(self.freq)
                     pwm.duty(0)
@@ -40,10 +40,10 @@ class Sidetone:
         if not self._pwms:
             return
         if self.mode == "active":
-            # buzzer con oscillatore: DC on/off (duty massimo = acceso)
+            # buzzer with built-in oscillator: DC on/off (max duty = on)
             d = 65535 if (self._on and self.volume > 0.01) else 0
         else:
-            # piezo passivo: onda quadra 50% * volume
+            # passive piezo: 50% square wave * volume
             d = int(32768 * self.volume) if self._on else 0
         for pwm in self._pwms:
             self._set_duty(pwm, d)
