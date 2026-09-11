@@ -138,7 +138,7 @@ and persist across reboots.
 | `display.py` | `Max7219`, `Screen` | Optional 8x8 matrix (scrolling text) |
 | `settings.py` | `Settings.get()`, `patch()` | Persistent settings on `settings.json` |
 | `morse.py` | `MORSE`, `FROM_MORSE` | Morse table and its reverse |
-| `tests/test_all.py` | — | 18 host-side tests (CPython, `uasyncio`/`time` stubs) |
+| `tests/test_all.py` | — | 19 host-side tests (CPython, `uasyncio`/`time` stubs) |
 | `tests/selftest_device.py` | — | On-device self-test: AP, GPIO, PWM, HTTP, WS, keyer |
 
 ## Differences from the Pi version
