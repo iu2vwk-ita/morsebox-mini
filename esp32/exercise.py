@@ -76,7 +76,8 @@ class Exercise:
         self._answer = None
         self._got = False
         self._pos = 0              # current character inside the target
-        self._blink = True         # blink phase for the character to key
+        self._flash_pos = None     # character just keyed (blinks as feedback)
+        self._flash_until = 0
         self._run_char = None      # last run of dots/dashes (for STOP/SKIP)
         self._run_len = 0
         self._run_at = 0
@@ -164,13 +165,15 @@ class Exercise:
         # per-character progress: key the target one letter at a time
         if self._pos < len(self._target) and ch and \
                 ch.upper() == self._target[self._pos].upper():
+            self._flash_pos = self._pos          # blink the letter just keyed
+            self._flash_until = now + 450
             self._pos += 1
-            self._blink = True
             if self._pos >= len(self._target):
                 self._answer = self._target
                 self._got = True
         else:
             self._pos = 0          # wrong letter: start the target over
+            self._flash_pos = None
 
     # ---------------------------------------------------------- helpers
     def _broadcast(self):
@@ -183,17 +186,19 @@ class Exercise:
             return
         total = len(self.targets)
         line1 = "%s %d/%d" % (self.name, self.index + 1, total)
-        # show the whole target; the character to key blinks between the
-        # letter and an underscore
-        if self._pos < len(self._target):
-            if self._blink:
-                line2 = self._target
-            else:
-                line2 = (self._target[:self._pos] + "_" +
-                         self._target[self._pos + 1:])
+        chars = list(self._target)
+        now = time.ticks_ms()
+        if (self._flash_pos is not None
+                and time.ticks_diff(now, self._flash_until) < 0):
+            # the letter just keyed blinks as confirmation
+            if (now // 120) % 2 == 0:
+                chars[self._flash_pos] = "_"
         else:
-            line2 = self._target
-        self.screen.set_exercise(line1, line2)
+            self._flash_pos = None
+            # otherwise the letter to key next blinks
+            if self._pos < len(chars) and (now // 350) % 2 == 0:
+                chars[self._pos] = "_"
+        self.screen.set_exercise(line1, "".join(chars))
 
     async def _play(self, text):
         if not self.sidetone:
@@ -239,19 +244,15 @@ class Exercise:
                 continue
             self._target = self.targets[self.index]
             self._pos = 0
-            self._blink = True
+            self._flash_pos = None
             self._answer = None
             self._got = False
             self._show()
             await self._play(self._target)
 
-            last_blink = time.ticks_ms()
             while self.active and not self._got:
-                if time.ticks_diff(time.ticks_ms(), last_blink) > 350:
-                    last_blink = time.ticks_ms()
-                    self._blink = not self._blink
-                    self._show()
-                await asyncio.sleep_ms(20)
+                self._show()
+                await asyncio.sleep_ms(80)
             if not self.active:
                 continue
 
