@@ -43,10 +43,14 @@ class Keyer:
 
     def _flush_letter(self):
         if self._buf:
-            ch = FROM_MORSE.get(self._buf, "\u25c7")
+            buf = self._buf
+            ch = FROM_MORSE.get(buf, "\u25c7")
             if self.exercise and self.exercise.active:
                 # during an exercise the decoded letter is the answer
-                self.exercise.feed(ch, self._buf)
+                self.exercise.feed(ch, buf)
+            elif self.exercise and self.exercise.menu:
+                # exercise menu: pick the drill with dots / a dash
+                self._menu_select(buf)
             else:
                 self.hub.push_text(ch)
                 self.hub.broadcast({"t": "txt", "ch": ch})
@@ -55,11 +59,35 @@ class Keyer:
                 self._check_exercise_trigger()
             self._buf = ""
 
+    def _menu_select(self, buf):
+        """Menu: N dots = exercise N, one dash = full drill. Then confirm:
+        .. = start, -- = exit."""
+        ex = self.exercise
+        if ex.pending is not None:
+            if buf == "..":
+                ex.confirm()
+            else:
+                ex.cancel()
+            return
+        if buf == "-":
+            ex.select(0)
+        elif buf and set(buf) == {"."}:
+            n = len(buf)
+            if 1 <= n <= 9:
+                ex.select(n)
+            else:
+                ex.menu = False
+        else:
+            ex.menu = False
+
     def _check_exercise_trigger(self):
-        """Start an exercise when the decoded text ends with TEST or TESTn."""
+        """Start an exercise on SOS (menu) or TEST / TESTn."""
         if not self.exercise:
             return
         txt = self.hub.snapshot_text().upper()
+        if txt.endswith("SOS"):
+            self.exercise.enter_menu()
+            return
         for n in range(9, 0, -1):
             if txt.endswith("TEST%d" % n):
                 self.exercise.start(n)

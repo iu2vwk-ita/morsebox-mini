@@ -18,26 +18,29 @@ WebSocket protocol is the same.
 
 ## Exercise mode
 
-Key **`TEST`** (full drill: A-Z then 0-9) or **`TEST1`..`TEST9`** to start a
-guided exercise. The target is **shown on the LCD and played on the piezo**
-(always together) at the selected WPM, then you key it back.
+**Beginner-friendly start:** key **`SOS`** (`...---...`) to open the exercise
+menu, key **N dots** to pick a drill, then **`..`** to confirm (or **`--`** to
+exit). The target is **shown on the LCD and played on the piezo** (always
+together) at the selected WPM, then you key it back.
 
-| Code | Exercise |
+| N dots | Exercise |
 |---|---|
-| TEST | Full drill: A-Z then 0-9 |
-| TEST1 | Alphabet A-Z |
-| TEST2 | Numbers 0-9 |
-| TEST3 | Koch order |
-| TEST4 | 20 random letters |
-| TEST5 | 20 random digits |
-| TEST6 | 20 random mixed letters/digits |
-| TEST7 | Common callsigns |
-| TEST8 | Q-codes / abbreviations |
-| TEST9 | Punctuation / prosigns |
+| `.` | TEST1 - Alphabet A-Z |
+| `..` | TEST2 - Numbers 0-9 |
+| `...` | TEST3 - Koch order |
+| `....` | TEST4 - 20 random letters |
+| `.....` | TEST5 - 20 random digits |
+| `......` | TEST6 - 20 random mixed |
+| `.......` | TEST7 - Common callsigns |
+| `........` | TEST8 - Q-codes / abbreviations |
+| `.........` | TEST9 - Punctuation / prosigns |
+| `-` | Full drill: A-Z then 0-9 |
 
-Controls (keyed, not valid characters): **`......`** (6 dots) = stop,
-**`------`** (6 dashes) = skip. A correct answer advances; a wrong one repeats
-the same target. The end of the run shows `DONE n/m`.
+You can also key **`TEST`** (full drill) or **`TEST1`..`TEST9`** directly.
+
+Controls: **`......`** (6 dots) = stop, **`------`** (6 dashes) = skip. A
+correct answer advances; a wrong one repeats the same target. The end of the
+run shows `DONE n/m`.
 
 ## Pinout
 

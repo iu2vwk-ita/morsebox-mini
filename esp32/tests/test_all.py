@@ -154,6 +154,8 @@ async def main():
     class FakeExercise:
         def __init__(self):
             self.active = False
+            self.menu = False
+            self.pending = None
             self.started = None
             self.playing = False
             self.fed = []
@@ -161,6 +163,21 @@ async def main():
         def start(self, n):
             self.started = n
             self.active = True
+
+        def enter_menu(self):
+            self.menu = True
+            self.pending = None
+
+        def select(self, n):
+            self.pending = n
+
+        def confirm(self):
+            if self.pending is not None:
+                self.start(self.pending)
+
+        def cancel(self):
+            self.pending = None
+            self.menu = False
 
         def feed(self, ch, buf):
             self.fed.append((ch, buf))
@@ -181,6 +198,26 @@ async def main():
     assert ex.fed and ex.fed[-1] == ("A", ".-"), ex.fed
     assert he.history == "TEST"          # not pushed to the normal text
     print("PASS exercise: trigger TEST/TESTn + answer routing")
+
+    # SOS enters the menu, N dots select, .. confirms, -- exits
+    ex.active = False
+    ex.menu = False
+    ex.started = None
+    he.history = "QSO SOS"
+    ke._check_exercise_trigger()
+    assert ex.menu is True
+    ke._menu_select("..")               # select exercise 2
+    assert ex.pending == 2, ex.pending
+    assert ex.started is None
+    ke._menu_select("..")               # confirm
+    assert ex.started == 2, ex.started
+    ex.started = None
+    ex.pending = None
+    ke._menu_select("-")                # full drill
+    assert ex.pending == 0, ex.pending
+    ke._menu_select("--")               # exit
+    assert ex.menu is False and ex.pending is None
+    print("PASS exercise: SOS menu + select + ..confirm / --exit")
 
     # ---- 4. WS accept (RFC 6455 vector)
     acc = wsproto.ws_accept("dGhlIHNhbXBsZSBub25jZQ==")

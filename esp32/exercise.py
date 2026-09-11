@@ -8,6 +8,7 @@
 #   ......  (6 dots)   = STOP
 #   ------  (6 dashes) = SKIP
 import random
+import time
 import uasyncio as asyncio
 from morse import MORSE
 
@@ -61,6 +62,8 @@ class Exercise:
         self.sidetone = sidetone
         self.screen = screen
         self.active = False
+        self.menu = False
+        self.pending = None
         self.playing = False
         self.name = ""
         self.targets = []
@@ -72,7 +75,42 @@ class Exercise:
         self._got = False
 
     # ---------------------------------------------------------- control
+    def enter_menu(self):
+        """SOS was keyed: wait for the student to pick an exercise."""
+        self.active = False
+        self.menu = True
+        self.pending = None
+        self._menu_at = time.ticks_ms()
+        self._menu_show()
+        self.hub.broadcast({"t": "ex", "on": False, "menu": True})
+
+    def _menu_show(self):
+        if not self.screen or not hasattr(self.screen, "set_exercise"):
+            return
+        if self.pending is None:
+            self.screen.set_exercise("SOS 1-9 dots", "- = full drill")
+        else:
+            label = "FULL" if self.pending == 0 else "EX %d" % self.pending
+            self.screen.set_exercise("%s?  ..=yes" % label, "-- = exit")
+
+    def select(self, n):
+        """A drill was picked: ask for confirmation (.. = yes, -- = exit)."""
+        self.pending = n
+        self._menu_at = time.ticks_ms()
+        self._menu_show()
+
+    def confirm(self):
+        if self.pending is not None:
+            self.start(self.pending)
+
+    def cancel(self):
+        self.pending = None
+        self.menu = False
+        self._clear()
+
     def start(self, n):
+        self.menu = False
+        self.pending = None
         self.targets = build(n)
         self.name = NAMES.get(n, "EX")
         self.index = 0
@@ -141,10 +179,18 @@ class Exercise:
                                      self.name)
         self._broadcast()
 
+    def _clear(self):
+        if self.screen and hasattr(self.screen, "clear_exercise"):
+            self.screen.clear_exercise()
+
     # ---------------------------------------------------------- task
     async def run(self):
         while True:
             if not self.active:
+                if self.menu and time.ticks_diff(
+                        time.ticks_ms(), self._menu_at) > 8000:
+                    self.menu = False
+                    self._clear()
                 await asyncio.sleep_ms(100)
                 continue
             self._target = self.targets[self.index]
@@ -163,6 +209,8 @@ class Exercise:
             if ans == "__STOP__":
                 self.active = False
                 self._finish()
+                await asyncio.sleep_ms(3000)
+                self._clear()
                 continue
             if ans == "__SKIP__":
                 self.index += 1
@@ -174,5 +222,7 @@ class Exercise:
             if self.index >= len(self.targets):
                 self.active = False
                 self._finish()
+                await asyncio.sleep_ms(3000)
+                self._clear()
             else:
                 self._broadcast()

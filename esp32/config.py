@@ -63,7 +63,7 @@ SETTINGS_FILE = "settings.json"
 BOOT_MESSAGE = "Hello! 73 de IU2VWK Angelo"
 BOOT_TITLE = "MorseBox Mini"
 # Second boot message: how to use the test/exercise mode.
-BOOT_HELP = "TESTn=start  ......=stop  ------=skip"
+BOOT_HELP = "SOS + N dots=start  ..=ok --=exit  ......=stop  ------=skip"
 
 DEFAULTS = {"wpm": 20, "reverse": False, "mode": "iambic-b",
             "tone": 650, "buzzer": False, "volume": 70}
