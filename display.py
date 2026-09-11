@@ -9,7 +9,6 @@
 Wiring (BCM): DIN=GPIO10, CLK=GPIO11, CS=GPIO8, VCC=5V, GND=GND.
 Chained modules: the next module's DIN goes to the previous one's DOUT.
 """
-import sys
 import threading
 import time
 
@@ -253,7 +252,6 @@ class Screen:
             with self._lock:
                 self._text = text
                 self.decode = text
-        f = self._frame_text.__wrapped__ if False else None
         cols = [0] * (COLUMNS + 20)
         x = -off
         for ch in (text or self._text).upper():

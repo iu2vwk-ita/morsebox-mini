@@ -280,7 +280,55 @@ async def main():
     exr5.feed("C", ".-.-.")
     exr5.feed("X", "-..-")               # wrong -> restart the target
     assert exr5._pos == 0
+    assert exr5._replay is True
     print("PASS exercise feed: split STOP/SKIP + 5-dot answer + per-letter")
+
+    # menu: SOS -> select -> confirm / cancel
+    exm = exmod.Exercise(_S(), _H())
+    exm.enter_menu()
+    assert exm.menu is True and exm.pending is None and exm.active is False
+    exm.select(3)
+    assert exm.pending == 3 and exm.menu is True
+    exm.confirm()
+    assert exm.active is True and exm.pending is None and exm.menu is False
+    assert exm.name == "KOCH" and len(exm.targets) == 36
+    exm2 = exmod.Exercise(_S(), _H())
+    exm2.enter_menu()
+    exm2.select(5)
+    exm2.cancel()
+    assert exm2.menu is False and exm2.pending is None and exm2.active is False
+    print("PASS exercise: menu/select/confirm/cancel")
+
+    # drill lists
+    assert len(exmod.build(0)) == 36      # full A-Z + 0-9
+    assert len(exmod.build(1)) == 26      # alphabet
+    assert len(exmod.build(2)) == 10      # numbers
+    assert len(exmod.build(3)) == 36      # Koch
+    assert len(exmod.build(4)) == 20
+    assert len(exmod.build(5)) == 20
+    assert len(exmod.build(6)) == 20
+    assert exmod.build(7)[0] == "I1ABC"
+    assert "CQ" in exmod.build(8)
+    assert "." in exmod.build(9)
+    print("PASS exercise: drill lists (build)")
+
+    # run loop: start, answer correctly, it advances
+    async def _ex_run():
+        exr7 = exmod.Exercise(_S(), _H())
+        exr7.start(1)
+        task = asyncio.create_task(exr7.run())
+        for _ in range(100):
+            if exr7._target:
+                break
+            await asyncio.sleep(0.01)
+        assert exr7._target == "A", exr7._target
+        exr7.feed("A", ".-")
+        await asyncio.sleep(0.1)
+        assert exr7.index == 1 and exr7.score == 1, (exr7.index, exr7.score)
+        task.cancel()
+
+    await _ex_run()
+    print("PASS exercise: run loop advances on a correct answer")
 
     # ---- 4. WS accept (RFC 6455 vector)
     acc = wsproto.ws_accept("dGhlIHNhbXBsZSBub25jZQ==")

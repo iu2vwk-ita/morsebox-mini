@@ -19,7 +19,7 @@ import threading
 import time
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import urlparse
-from morse import MORSE, FROM_MORSE
+from morse import FROM_MORSE
 from exercise import Exercise
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))

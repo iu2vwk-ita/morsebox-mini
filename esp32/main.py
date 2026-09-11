@@ -71,6 +71,7 @@ def main():
         sidetone.set_volume(data.get("volume", 70))
 
     on_settings(settings.get())
+    print("free RAM:", gc.mem_free())
 
     exercise = Exercise(settings, hub, sidetone=sidetone, screen=screen)
     keyer = Keyer(paddle, settings, hub, sidetone=sidetone, screen=screen,

@@ -118,15 +118,20 @@ class Screen:
         else:
             line1 = self._pad(self._line1(), LCD_COLS)
             line2 = self._pad(self.decode, LCD_COLS)
-        # only rewrite the line that actually changed (less I2C = less jitter)
-        if line1 != self._last1:
-            self.lcd.move_to(0, 0)
-            self.lcd.putstr(line1)
-            self._last1 = line1
-        if LCD_ROWS > 1 and line2 != self._last2:
-            self.lcd.move_to(0, 1)
-            self.lcd.putstr(line2)
-            self._last2 = line2
+        # write only the characters that actually changed (much less I2C)
+        self._last1 = self._write_line(0, line1, self._last1)
+        if LCD_ROWS > 1:
+            self._last2 = self._write_line(1, line2, self._last2)
+
+    def _write_line(self, row, line, last):
+        if line == last:
+            return last
+        prev = last or ""
+        for i in range(len(line)):
+            if i >= len(prev) or prev[i] != line[i]:
+                self.lcd.move_to(i, row)
+                self.lcd.putstr(line[i])
+        return line
 
     def set_exercise(self, line1, line2=""):
         new = (line1, line2)
