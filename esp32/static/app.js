@@ -146,11 +146,14 @@ els.revBtn.onclick = () => {
   saveSettings();
 };
 els.seg.forEach(b => b.onclick = () => { S.mode = b.dataset.mode; applySettings(S); saveSettings(); });
+let toneTimer = null;
 els.tone.oninput = () => {
   touchEdit('tone');
   S.tone = +els.tone.value;
   els.toneVal.textContent = S.tone + ' Hz';
   if (AC && osc) osc.frequency.value = S.tone;
+  clearTimeout(toneTimer);
+  toneTimer = setTimeout(saveSettings, 120);   // send while dragging, not only on release
 };
 els.tone.onchange = saveSettings;
 let volTimer = null;

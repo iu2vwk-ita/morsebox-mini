@@ -54,12 +54,21 @@ class Sidetone:
         self._apply()
 
     def set_freq(self, f):
-        self.freq = int(f)
+        f = int(f)
+        if f == self.freq:
+            return
+        self.freq = f
         for pwm in self._pwms:
             try:
-                pwm.freq(self.freq)
+                pwm.freq(f)
             except Exception:
-                pass
+                # some firmware builds only expose init() for changes
+                try:
+                    pwm.init(freq=f)
+                except Exception:
+                    pass
+        # changing the frequency can reset the duty: re-apply the current state
+        self._apply()
 
     def set_volume(self, v):
         self.volume = max(0.0, min(1.0, v / 100.0))
