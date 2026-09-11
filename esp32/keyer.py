@@ -11,15 +11,17 @@ from morse import FROM_MORSE
 
 class Keyer:
     def __init__(self, paddle, settings, hub, sidetone=None, screen=None,
-                 exercise=None):
+                 exercise=None, easter=None):
         self.paddle = paddle
         self.settings = settings
         self.hub = hub
         self.sidetone = sidetone
         self.screen = screen
         self.exercise = exercise
+        self.easter = easter
         self.key_out = False
         self._unit = 60
+        self._dot_run = 0
 
     # ------------------------------------------------------------ key output
     def _set_key(self, on):
@@ -29,7 +31,9 @@ class Keyer:
         self.hub.broadcast({"t": "key", "on": on,
                             "dit": getattr(self, "_in_dit", False),
                             "dah": getattr(self, "_in_dah", False)})
-        if self.sidetone and not (self.exercise and self.exercise.playing):
+        busy = ((self.exercise and self.exercise.playing)
+                or (self.easter and self.easter.playing))
+        if self.sidetone and not busy:
             self.sidetone.set(on)
         now = time.ticks_ms()
         if on:
@@ -39,7 +43,18 @@ class Keyer:
             self._off_at = now
 
     def _decode_element(self, dur, unit):
-        self._buf += "-" if dur >= 2 * unit else "."
+        el = "-" if dur >= 2 * unit else "."
+        self._buf += el
+        # hidden easter egg: 10 dots in a row
+        if el == ".":
+            self._dot_run += 1
+        else:
+            self._dot_run = 0
+        if self._dot_run >= 10:
+            self._dot_run = 0
+            self._buf = ""
+            if self.easter:
+                self.easter.fire()
 
     def _flush_letter(self):
         if self._buf:

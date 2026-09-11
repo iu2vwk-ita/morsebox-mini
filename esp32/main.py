@@ -14,6 +14,7 @@ from gpio import Paddle
 from sidetone import Sidetone
 from keyer import Keyer
 from exercise import Exercise
+from easter import EasterEgg
 from webserver import WebServer
 
 
@@ -74,8 +75,9 @@ def main():
     print("free RAM:", gc.mem_free())
 
     exercise = Exercise(settings, hub, sidetone=sidetone, screen=screen)
+    easter = EasterEgg(settings, sidetone=sidetone, screen=screen)
     keyer = Keyer(paddle, settings, hub, sidetone=sidetone, screen=screen,
-                  exercise=exercise)
+                  exercise=exercise, easter=easter)
     server = WebServer(settings, hub, paddle, on_settings=on_settings)
 
     async def wdt_task():
@@ -87,6 +89,7 @@ def main():
     async def runner():
         asyncio.create_task(keyer.run())
         asyncio.create_task(exercise.run())
+        asyncio.create_task(easter.run())
         asyncio.create_task(server.start())
         if wdt:
             asyncio.create_task(wdt_task())

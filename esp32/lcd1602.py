@@ -93,6 +93,7 @@ class Screen:
         self.mode = "iambic-b"
         self.decode = ""
         self.exercise = None
+        self.banner = None
         self._last1 = self._last2 = None
         self._dirty = True
         self._refresh()
@@ -112,7 +113,10 @@ class Screen:
         return left + " " * n + right
 
     def _refresh(self):
-        if self.exercise:
+        if self.banner:
+            line1 = self._pad(self.banner[0], LCD_COLS)
+            line2 = self._pad(self.banner[1], LCD_COLS)
+        elif self.exercise:
             line1 = self._pad(self.exercise[0], LCD_COLS)
             line2 = self._pad(self.exercise[1], LCD_COLS)
         else:
@@ -141,6 +145,14 @@ class Screen:
 
     def clear_exercise(self):
         self.exercise = None
+        self._dirty = True
+
+    def set_banner(self, line1, line2=""):
+        self.banner = (line1, line2)
+        self._dirty = True
+
+    def clear_banner(self):
+        self.banner = None
         self._dirty = True
 
     def set_wpm(self, w):

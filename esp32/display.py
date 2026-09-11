@@ -145,6 +145,13 @@ class Screen:
     def clear_exercise(self):
         self._text = self._build()
 
+    def set_banner(self, line1, line2=""):
+        self._text = (line1 + "   " + line2).upper()
+        self._off = 0
+
+    def clear_banner(self):
+        self._text = self._build()
+
     def _frame_text(self):
         cols = [0] * (COLUMNS + 20)
         x = -self._off
