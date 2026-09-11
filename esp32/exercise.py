@@ -30,6 +30,13 @@ NAMES = {0: "FULL", 1: "ALPHABET", 2: "NUMBERS", 3: "KOCH",
          4: "LETTERS", 5: "DIGITS", 6: "MIXED", 7: "CALLSIGNS",
          8: "ABBREV", 9: "PUNCT"}
 
+# Menu: scrolled on the display so you can read the courses before choosing.
+MENU_LIST = "   ".join(["%d %s" % (n, NAMES[n]) for n in range(1, 10)])
+MENU_LIST += "   - FULL   "
+MENU_HINT = "1-9  ..=ok  --=no"
+MENU_SCROLL_MS = 320
+MENU_TIMEOUT_MS = 20000
+
 
 def build(n):
     """Return the list of targets for exercise n (0..9)."""
@@ -77,6 +84,8 @@ class Exercise:
         self._got = False
         self._pos = 0              # current character inside the target
         self._replay = False       # a wrong letter asks to replay the target
+        self._scroll_off = 0       # menu: scrolling offset of the course list
+        self._scroll_at = 0
 
     # ---------------------------------------------------------- control
     def enter_menu(self):
@@ -85,6 +94,8 @@ class Exercise:
         self.menu = True
         self.pending = None
         self._menu_at = time.ticks_ms()
+        self._scroll_off = 0
+        self._scroll_at = time.ticks_ms()
         # clear the decoded text so SOS does not fire again right away
         if hasattr(self.hub, "clear_text"):
             self.hub.clear_text()
@@ -95,15 +106,23 @@ class Exercise:
         if not self.screen or not hasattr(self.screen, "set_exercise"):
             return
         if self.pending is None:
-            # clear, explicit prompt: how many dots?
-            self.screen.set_exercise("MENU", "DOTS 1-9 ?")
+            self._menu_scroll()
         elif self.pending == 0:
-            self.screen.set_exercise("0 FULL ?", ".. OK  -- NO")
+            self.screen.set_exercise("- FULL ?", ".. OK  -- NO")
         else:
             # show which drill the number maps to (1 ALPHABET, 3 KOCH, ...)
             self.screen.set_exercise(
                 "%d %s ?" % (self.pending, NAMES.get(self.pending, "EX")),
                 ".. OK  -- NO")
+
+    def _menu_scroll(self):
+        """One 16-char window of the course list; the task advances it."""
+        if not self.screen or not hasattr(self.screen, "set_exercise"):
+            return
+        text = MENU_LIST
+        off = self._scroll_off % len(text)
+        window = (text + text)[off:off + 16]
+        self.screen.set_exercise(window, MENU_HINT)
 
     def select(self, n):
         """A drill was picked: ask for confirmation (.. = yes, -- = exit)."""
@@ -116,9 +135,15 @@ class Exercise:
             self.start(self.pending)
 
     def cancel(self):
-        self.pending = None
-        self.menu = False
-        self._clear()
+        if self.pending is not None:
+            # "no" on the confirm screen: back to the scrolling course list
+            self.pending = None
+            self._scroll_off = 0
+            self._scroll_at = time.ticks_ms()
+            self._menu_show()
+        else:
+            self.menu = False
+            self._clear()
 
     def start(self, n):
         self.menu = False
@@ -215,10 +240,16 @@ class Exercise:
     # ---------------------------------------------------------- task
     async def _tick(self):
         if not self.active:
-            if self.menu and time.ticks_diff(
-                    time.ticks_ms(), self._menu_at) > 8000:
-                self.menu = False
-                self._clear()
+            now = time.ticks_ms()
+            if self.menu:
+                if self.pending is None and time.ticks_diff(
+                        now, self._scroll_at) > MENU_SCROLL_MS:
+                    self._scroll_at = now
+                    self._scroll_off += 1
+                    self._menu_scroll()
+                if time.ticks_diff(now, self._menu_at) > MENU_TIMEOUT_MS:
+                    self.menu = False
+                    self._clear()
             await asyncio.sleep_ms(100)
             return
         self._target = self.targets[self.index]

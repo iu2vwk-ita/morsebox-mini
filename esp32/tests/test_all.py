@@ -330,9 +330,16 @@ async def main():
     exm2 = exmod.Exercise(_S(), _H())
     exm2.enter_menu()
     exm2.select(5)
-    exm2.cancel()
+    exm2.cancel()                 # "no" on the confirm screen -> course list
+    assert exm2.menu is True and exm2.pending is None, (exm2.menu, exm2.pending)
+    exm2.cancel()                 # "no" again on the list -> leave the menu
     assert exm2.menu is False and exm2.pending is None and exm2.active is False
-    print("PASS exercise: menu/select/confirm/cancel")
+
+    # the scrolled list shows every course with its number and name
+    for n in range(1, 10):
+        assert ("%d %s" % (n, exmod.NAMES[n])) in exmod.MENU_LIST
+    assert "- FULL" in exmod.MENU_LIST
+    print("PASS exercise: menu/select/confirm/cancel + scrolled course list")
 
     # drill lists
     assert len(exmod.build(0)) == 36      # full A-Z + 0-9
