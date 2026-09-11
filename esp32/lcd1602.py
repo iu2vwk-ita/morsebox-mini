@@ -9,7 +9,7 @@ import time
 import uasyncio as asyncio
 from machine import I2C, Pin
 from config import (LCD_I2C_ID, LCD_SDA, LCD_SCL, LCD_ADDR,
-                    LCD_COLS, LCD_ROWS)
+                    LCD_COLS, LCD_ROWS, BOOT_MESSAGE, BOOT_TITLE)
 
 # PCF8574 bits on the classic FC-113 backpack
 _RS = 0x01
@@ -138,7 +138,24 @@ class Screen:
         self.decode = self.decode[-(LCD_COLS - 1):]
         self._dirty = True
 
+    async def _boot_scroll(self, msg):
+        """Scroll the boot message once, then return to the normal screen."""
+        self.lcd.move_to(0, 0)
+        self.lcd.putstr(self._pad(BOOT_TITLE, LCD_COLS))
+        row = 0 if LCD_ROWS < 2 else 1
+        buf = "    " + msg + "    "
+        for i in range(max(1, len(buf) - LCD_COLS + 1)):
+            self.lcd.move_to(0, row)
+            self.lcd.putstr(buf[i:i + LCD_COLS])
+            await asyncio.sleep_ms(220)
+        self._dirty = True
+
     async def run(self):
+        if BOOT_MESSAGE:
+            try:
+                await self._boot_scroll(BOOT_MESSAGE)
+            except Exception:
+                pass
         while True:
             if self._dirty:
                 self._dirty = False

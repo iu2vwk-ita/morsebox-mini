@@ -5,7 +5,8 @@
 # Chained modules: the next module's DIN goes to the previous one's DOUT.
 import uasyncio as asyncio
 from machine import Pin, SPI
-from config import (DISPLAY_SCK, DISPLAY_MOSI, DISPLAY_CS, DISPLAY_MODULES)
+from config import (DISPLAY_SCK, DISPLAY_MOSI, DISPLAY_CS, DISPLAY_MODULES,
+                    BOOT_MESSAGE, BOOT_TITLE)
 
 MODULES = DISPLAY_MODULES
 COLUMNS = MODULES * 8
@@ -151,7 +152,26 @@ class Screen:
             x += 6
         return cols[:COLUMNS]
 
+    async def _boot_scroll(self, msg):
+        """Scroll the boot message once, then return to the normal screen."""
+        self._text = BOOT_TITLE + "     " + msg + "     "
+        end = len(self._text) * 6 + 8
+        for off in range(0, end, 1):
+            self._off = off
+            try:
+                self.hw.render(self._frame_text())
+            except Exception:
+                pass
+            await asyncio.sleep_ms(60)
+        self._off = 0
+        self._text = self._build()
+
     async def run(self):
+        if BOOT_MESSAGE:
+            try:
+                await self._boot_scroll(BOOT_MESSAGE)
+            except Exception:
+                pass
         while True:
             await asyncio.sleep_ms(120)
             self._tick += 1

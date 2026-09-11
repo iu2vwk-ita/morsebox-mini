@@ -58,5 +58,10 @@ HTTP_PORT = 80
 HOLD_TIMEOUT_MS = 2500           # forget remote paddles that stop reporting
 SETTINGS_FILE = "settings.json"
 
+# ------------------------------------------------------------------ boot message
+# Scrolled on the LCD (or MAX7219) once at startup. Set to "" to disable.
+BOOT_MESSAGE = "Hello! 73 de IU2VWK Angelo"
+BOOT_TITLE = "MorseBox Mini"
+
 DEFAULTS = {"wpm": 20, "reverse": False, "mode": "iambic-b",
             "tone": 650, "buzzer": False, "volume": 70}
