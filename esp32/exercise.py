@@ -1,0 +1,178 @@
+# CW-School / MorseBox exercise mode.
+#
+# Start by keying TEST (full drill) or TEST1..TEST9. The device SHOWS the
+# target on the LCD and PLAYS it on the piezo (always both, together), then
+# waits for the student to key it back.
+#
+# Controls (keyed, not valid characters):
+#   ......  (6 dots)   = STOP
+#   ------  (6 dashes) = SKIP
+import random
+import uasyncio as asyncio
+from morse import MORSE
+
+# Koch learning order (letters + digits)
+KOCH = list("KMRSUAPTLOWINJEFYV0G5Q9ZH38B427C1D6X")
+CALLSIGNS = ["I1ABC", "IU2VWK", "IK2XYZ", "DL1ABC", "K1ABC",
+             "F5XYZ", "EA5ABC", "G3XYZ", "JA1ABC", "VE3ABC"]
+ABBREV = ["CQ", "DE", "QTH", "QSL", "QRZ", "RST", "73", "88",
+          "OM", "YL", "FB", "PSE", "TNX", "GL", "GB"]
+PUNCT = [".", ",", "?", "/", "=", "+", "AR", "SK", "BT"]
+
+NAMES = {0: "FULL", 1: "ALPHABET", 2: "NUMBERS", 3: "KOCH",
+         4: "LETTERS", 5: "DIGITS", 6: "MIXED", 7: "CALLSIGNS",
+         8: "ABBREV", 9: "PUNCT"}
+
+STOP_SEQ = "......"
+SKIP_SEQ = "------"
+
+
+def build(n):
+    """Return the list of targets for exercise n (0..9)."""
+    if n == 1:
+        return list("ABCDEFGHIJKLMNOPQRSTUVWXYZ")
+    if n == 2:
+        return list("0123456789")
+    if n == 3:
+        return list(KOCH)
+    if n == 4:
+        return [random.choice("ABCDEFGHIJKLMNOPQRSTUVWXYZ") for _ in range(20)]
+    if n == 5:
+        return [random.choice("0123456789") for _ in range(20)]
+    if n == 6:
+        return [random.choice("ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789")
+                for _ in range(20)]
+    if n == 7:
+        return list(CALLSIGNS)
+    if n == 8:
+        return list(ABBREV)
+    if n == 9:
+        return list(PUNCT)
+    # 0 = full drill: A-Z then 0-9
+    return list("ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789")
+
+
+class Exercise:
+    """Runs the exercise state machine as an asyncio task."""
+
+    def __init__(self, settings, hub, sidetone=None, screen=None):
+        self.settings = settings
+        self.hub = hub
+        self.sidetone = sidetone
+        self.screen = screen
+        self.active = False
+        self.playing = False
+        self.name = ""
+        self.targets = []
+        self.index = 0
+        self.score = 0
+        self._target = ""
+        self._typed = ""
+        self._answer = None
+        self._got = False
+
+    # ---------------------------------------------------------- control
+    def start(self, n):
+        self.targets = build(n)
+        self.name = NAMES.get(n, "EX")
+        self.index = 0
+        self.score = 0
+        self._typed = ""
+        self._answer = None
+        self._got = False
+        self.active = True
+        self._broadcast()
+
+    def feed(self, ch, buf):
+        """Called by the keyer on every decoded letter while active."""
+        if not self.active:
+            return
+        if buf == STOP_SEQ:
+            self._answer = "__STOP__"
+            self._got = True
+            return
+        if buf == SKIP_SEQ:
+            self._answer = "__SKIP__"
+            self._got = True
+            return
+        self._typed += ch
+        if len(self._typed) >= len(self._target):
+            self._answer = self._typed
+            self._got = True
+
+    # ---------------------------------------------------------- helpers
+    def _broadcast(self):
+        self.hub.broadcast({"t": "ex", "on": self.active, "name": self.name,
+                            "index": self.index, "total": len(self.targets),
+                            "score": self.score})
+
+    def _show(self, line2=None):
+        if not self.screen or not hasattr(self.screen, "set_exercise"):
+            return
+        total = len(self.targets)
+        self.screen.set_exercise("EX %s %d/%d" % (self.name, self.index + 1,
+                                                  total), line2 or self._target)
+
+    async def _play(self, text):
+        if not self.sidetone:
+            return
+        self.playing = True
+        try:
+            unit = max(20, 1200 // int(self.settings.get()["wpm"]))
+            for ch in text.upper():
+                code = MORSE.get(ch)
+                if not code:
+                    continue
+                for el in code:
+                    self.sidetone.set(True)
+                    await asyncio.sleep_ms(unit if el == "." else 3 * unit)
+                    self.sidetone.set(False)
+                    await asyncio.sleep_ms(unit)
+                await asyncio.sleep_ms(2 * unit)   # letter gap
+            await asyncio.sleep_ms(2 * unit)
+        finally:
+            self.sidetone.set(False)
+            self.playing = False
+
+    def _finish(self):
+        if self.screen and hasattr(self.screen, "set_exercise"):
+            total = len(self.targets)
+            self.screen.set_exercise("DONE %d/%d" % (self.score, total),
+                                     self.name)
+        self._broadcast()
+
+    # ---------------------------------------------------------- task
+    async def run(self):
+        while True:
+            if not self.active:
+                await asyncio.sleep_ms(100)
+                continue
+            self._target = self.targets[self.index]
+            self._typed = ""
+            self._answer = None
+            self._got = False
+            self._show()
+            await self._play(self._target)
+
+            while self.active and not self._got:
+                await asyncio.sleep_ms(20)
+            if not self.active:
+                continue
+
+            ans = self._answer
+            if ans == "__STOP__":
+                self.active = False
+                self._finish()
+                continue
+            if ans == "__SKIP__":
+                self.index += 1
+            elif ans and ans.upper() == self._target.upper():
+                self.score += 1
+                self.index += 1
+            # wrong answer: repeat the same target
+
+            if self.index >= len(self.targets):
+                self.active = False
+                self._finish()
+            else:
+                self._broadcast()

@@ -10,12 +10,14 @@ from morse import FROM_MORSE
 
 
 class Keyer:
-    def __init__(self, paddle, settings, hub, sidetone=None, screen=None):
+    def __init__(self, paddle, settings, hub, sidetone=None, screen=None,
+                 exercise=None):
         self.paddle = paddle
         self.settings = settings
         self.hub = hub
         self.sidetone = sidetone
         self.screen = screen
+        self.exercise = exercise
         self.key_out = False
         self._unit = 60
 
@@ -27,7 +29,7 @@ class Keyer:
         self.hub.broadcast({"t": "key", "on": on,
                             "dit": getattr(self, "_in_dit", False),
                             "dah": getattr(self, "_in_dah", False)})
-        if self.sidetone:
+        if self.sidetone and not (self.exercise and self.exercise.playing):
             self.sidetone.set(on)
         now = time.ticks_ms()
         if on:
@@ -42,11 +44,28 @@ class Keyer:
     def _flush_letter(self):
         if self._buf:
             ch = FROM_MORSE.get(self._buf, "\u25c7")
-            self.hub.push_text(ch)
-            self.hub.broadcast({"t": "txt", "ch": ch})
-            if self.screen:
-                self.screen.add_char(ch)
+            if self.exercise and self.exercise.active:
+                # during an exercise the decoded letter is the answer
+                self.exercise.feed(ch, self._buf)
+            else:
+                self.hub.push_text(ch)
+                self.hub.broadcast({"t": "txt", "ch": ch})
+                if self.screen:
+                    self.screen.add_char(ch)
+                self._check_exercise_trigger()
             self._buf = ""
+
+    def _check_exercise_trigger(self):
+        """Start an exercise when the decoded text ends with TEST or TESTn."""
+        if not self.exercise:
+            return
+        txt = self.hub.snapshot_text().upper()
+        for n in range(9, 0, -1):
+            if txt.endswith("TEST%d" % n):
+                self.exercise.start(n)
+                return
+        if txt.endswith("TEST"):
+            self.exercise.start(0)
 
     # ------------------------------------------------------------ loop
     async def run(self):

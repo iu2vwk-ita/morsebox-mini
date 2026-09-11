@@ -150,6 +150,38 @@ async def main():
     assert not k3_events[-1]["on"], "straight: key not released"
     print("PASS keyer straight: correct key on/off")
 
+    # ---- 3b. exercise: trigger TEST/TESTn + answer routing
+    class FakeExercise:
+        def __init__(self):
+            self.active = False
+            self.started = None
+            self.playing = False
+            self.fed = []
+
+        def start(self, n):
+            self.started = n
+            self.active = True
+
+        def feed(self, ch, buf):
+            self.fed.append((ch, buf))
+
+    ex = FakeExercise()
+    pe, he = FakePaddle(), FakeHub()
+    ke = keyer.Keyer(pe, FakeSettings(), he, exercise=ex)
+    he.history = "QSO TEST1"
+    ke._check_exercise_trigger()
+    assert ex.started == 1, ex.started
+    ex.started = None
+    he.history = "TEST"
+    ke._check_exercise_trigger()
+    assert ex.started == 0, ex.started
+    ex.active = True
+    ke._buf = ".-"
+    ke._flush_letter()
+    assert ex.fed and ex.fed[-1] == ("A", ".-"), ex.fed
+    assert he.history == "TEST"          # not pushed to the normal text
+    print("PASS exercise: trigger TEST/TESTn + answer routing")
+
     # ---- 4. WS accept (RFC 6455 vector)
     acc = wsproto.ws_accept("dGhlIHNhbXBsZSBub25jZQ==")
     assert acc == "s3pPLMBiTxaQ9kYGzzhZRbK+xOo=", acc

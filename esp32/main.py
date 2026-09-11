@@ -13,6 +13,7 @@ from hub import Hub
 from gpio import Paddle
 from sidetone import Sidetone
 from keyer import Keyer
+from exercise import Exercise
 from webserver import WebServer
 
 
@@ -64,11 +65,14 @@ def main():
 
     on_settings(settings.get())
 
-    keyer = Keyer(paddle, settings, hub, sidetone=sidetone, screen=screen)
+    exercise = Exercise(settings, hub, sidetone=sidetone, screen=screen)
+    keyer = Keyer(paddle, settings, hub, sidetone=sidetone, screen=screen,
+                  exercise=exercise)
     server = WebServer(settings, hub, paddle, on_settings=on_settings)
 
     async def runner():
         asyncio.create_task(keyer.run())
+        asyncio.create_task(exercise.run())
         asyncio.create_task(server.start())
         if screen:
             asyncio.create_task(screen.run())

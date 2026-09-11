@@ -17,7 +17,7 @@ fi
 
 echo "[1/3] Copying Python modules..."
 for f in config.py settings.py morse.py gpio.py sidetone.py \
-         hub.py wsproto.py keyer.py webserver.py display.py \
+         hub.py wsproto.py keyer.py exercise.py webserver.py display.py \
          lcd1602.py wifi_ap.py main.py; do
   echo "  -> $f"
   $MP fs cp "$f" ":$f"

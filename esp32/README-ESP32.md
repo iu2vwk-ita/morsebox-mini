@@ -16,6 +16,29 @@ WebSocket protocol is the same.
 - Optional **LCD1602 I2C** display: line 1 `WPM xx` + keyer mode, line 2 the
   decoded CW text.
 
+## Exercise mode
+
+Key **`TEST`** (full drill: A-Z then 0-9) or **`TEST1`..`TEST9`** to start a
+guided exercise. The target is **shown on the LCD and played on the piezo**
+(always together) at the selected WPM, then you key it back.
+
+| Code | Exercise |
+|---|---|
+| TEST | Full drill: A-Z then 0-9 |
+| TEST1 | Alphabet A-Z |
+| TEST2 | Numbers 0-9 |
+| TEST3 | Koch order |
+| TEST4 | 20 random letters |
+| TEST5 | 20 random digits |
+| TEST6 | 20 random mixed letters/digits |
+| TEST7 | Common callsigns |
+| TEST8 | Q-codes / abbreviations |
+| TEST9 | Punctuation / prosigns |
+
+Controls (keyed, not valid characters): **`......`** (6 dots) = stop,
+**`------`** (6 dashes) = skip. A correct answer advances; a wrong one repeats
+the same target. The end of the run shows `DONE n/m`.
+
 ## Pinout
 
 | Function | GPIO | Mode |
