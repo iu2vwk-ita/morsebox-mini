@@ -45,16 +45,17 @@ class Keyer:
     def _decode_element(self, dur, unit):
         el = "-" if dur >= 2 * unit else "."
         self._buf += el
-        # hidden easter egg: 10 dots in a row
+        # hidden easter egg: 10 dots followed by a dash
         if el == ".":
             self._dot_run += 1
         else:
+            if self._dot_run >= 10:
+                self._dot_run = 0
+                self._buf = ""
+                if self.easter:
+                    self.easter.fire()
+                return
             self._dot_run = 0
-        if self._dot_run >= 10:
-            self._dot_run = 0
-            self._buf = ""
-            if self.easter:
-                self.easter.fire()
 
     def _flush_letter(self):
         self._dot_run = 0          # the 10-dot run must be within one letter
