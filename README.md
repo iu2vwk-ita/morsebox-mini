@@ -30,7 +30,8 @@ git clone https://github.com/iu2vwk-ita/morsebox-mini.git && cd morsebox/esp32 &
 
 ## What it does
 
-* Iambic A / B and straight key, 5 to 60 WPM, paddle reverse (DX⇄SX)
+* Iambic A / B, straight key and a **SINGLE** beginner mode (one tap = one
+  element, no memory/repeat), 5 to 60 WPM, paddle reverse (DX⇄SX)
 * Live decoded text on the web page and on the display
 * Sidetone pitch (400–4000 Hz) and volume from the page, on 1 to 3 piezos
 * Key with a paddle, a straight key, the on-screen paddle, or the keyboard

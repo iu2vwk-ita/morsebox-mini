@@ -10,7 +10,8 @@ WebSocket protocol is the same.
 - The ESP32 creates the access point **`IU2VWK-MORSE`** (password `morse1234`).
 - HTTP + WebSocket web server on port **80**, IP **10.42.0.1**
   (same IP as the Pi: the lid QR codes keep working).
-- Iambic A / B + straight keyer, 5-60 WPM, reverse DX/SX, CW to text decoder.
+- Iambic A / B + straight keyer + **SINGLE** beginner mode (one tap = one
+  element, no memory/repeat), 5-60 WPM, reverse DX/SX, CW to text decoder.
 - **Zero-latency hardware PWM sidetone** on 1-3 piezos, no audio pipeline.
 - Optional MAX7219 8x8 display.
 - Optional **LCD1602 I2C** display: line 1 `WPM xx` + keyer mode, line 2 the
@@ -93,7 +94,7 @@ The logic can be verified on a PC with CPython, using `uasyncio`/`time` stubs:
 python3 tests/test_all.py
 ```
 
-It covers: iambic A/B keyer, reverse, straight, decoder, WebSocket handshake,
+It covers: iambic A/B keyer, single mode, reverse, straight, decoder, WebSocket handshake,
 frame encode/decode, HTTP parsing, routes and path traversal.
 
 ## Usage
@@ -127,7 +128,7 @@ and persist across reboots.
 | `wifi_ap.py` | `start_ap()` | Creates the `IU2VWK-MORSE` access point |
 | `gpio.py` | `Paddle.read()` | Reads DIT / DAH / STRAIGHT (active low, pull-up) |
 | `sidetone.py` | `Sidetone.set()`, `set_freq()`, `set_volume()` | Zero-latency PWM on 1-3 piezos |
-| `keyer.py` | `Keyer.run()` | Iambic A/B + straight state machine and CW decoder |
+| `keyer.py` | `Keyer.run()` | Iambic A/B + straight + single state machine and CW decoder |
 | `keyer.py` | `_set_key()`, `_flush_letter()`, `_check_exercise_trigger()`, `_menu_select()` | Key output, letter decoding, exercise triggers and menu |
 | `exercise.py` | `build(n)` | Builds the target list for drill `n` (0..9) |
 | `exercise.py` | `Exercise.enter_menu()`, `select()`, `confirm()`, `cancel()`, `start()`, `feed()`, `run()` | Menu, confirmation, per-letter progress, blinking target, playback |
