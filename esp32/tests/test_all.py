@@ -121,11 +121,19 @@ async def main():
     print("PASS keyer iambic A: dit+dah -> 'A' (%d key events)"
           % len(key_events))
 
-    # ---- 1b. iambic B keyer: a dit tap adds one element (mode B memory)
+    # ---- 1b. iambic B keyer: a plain dit tap gives exactly ONE element
+    # (the old code re-latched the paddle that started the element and added a
+    # spurious extra element, e.g. .- came out as .-.-)
     pb, hb = FakePaddle(), FakeHub()
     await scenario_tap(pb, hb, FakeSettings(mode="iambic-b"))
-    assert hb.history.strip() == "I", "iambic B: expected I, got %r" % hb.history
-    print("PASS keyer iambic B: dit tap -> '..' (mode B memory)")
+    assert hb.history.strip() == "E", "iambic B: expected E, got %r" % hb.history
+    print("PASS keyer iambic B: dit tap -> '.' (no spurious extra element)")
+
+    # ---- 1b2. iambic B: a normal dit+dah must stay "A", not ".-.-"
+    pbb, hbb = FakePaddle(), FakeHub()
+    await scenario_letter(pbb, hbb, FakeSettings(mode="iambic-b"))
+    assert hbb.history.strip() == "A", "iambic B: expected A, got %r" % hbb.history
+    print("PASS keyer iambic B: dit+dah -> 'A' (no extra element)")
 
     # ---- 1c. iambic A keyer: a dit tap does NOT add elements
     pa, ha = FakePaddle(), FakeHub()

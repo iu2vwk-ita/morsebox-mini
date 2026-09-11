@@ -134,6 +134,7 @@ class Keyer:
         self._off_at = 0
         word_sent = True
         p_dit = p_dah = p_key = False
+        prev_dit = prev_dah = False
         self._pad_dit = self._pad_dah = False
         # snapshot() avoids allocating a dict every millisecond (GC jitter)
         snap = getattr(self.settings, "snapshot", None) or self.settings.get
@@ -170,42 +171,49 @@ class Keyer:
                     dit_mem = dah_mem = False
                     sending = None
                     self._set_key(skey)
-                elif sending is not None:
-                    if dit:
-                        dit_mem = True
-                    if dah:
-                        dah_mem = True
-                    if time.ticks_diff(now, t_end) >= 0:
-                        # end of element: mode A resamples, mode B keeps the memory
-                        if mode == "iambic-a":
-                            dit_mem, dah_mem = dit, dah
-                        self._set_key(False)
-                        sending = None
-                        t_gap = now + unit
-                elif time.ticks_diff(now, t_gap) >= 0:
-                    if dit:
-                        dit_mem = True
-                    if dah:
-                        dah_mem = True
-                    if dit_mem and dah_mem:
-                        nxt = "dah" if last == "dit" else "dit"
-                        if nxt == "dit":
-                            dit_mem = False
+                else:
+                    # Memory: while in the gap any closed paddle is remembered;
+                    # while an element is playing only a NEW press counts (a
+                    # rising edge). The old code re-latched the paddle that was
+                    # generating the current element, so a normal hold added an
+                    # extra element (e.g. .- came out as .-.-).
+                    if sending is None:
+                        if dit:
+                            dit_mem = True
+                        if dah:
+                            dah_mem = True
+                    else:
+                        if dit and not prev_dit:
+                            dit_mem = True
+                        if dah and not prev_dah:
+                            dah_mem = True
+
+                    if sending is not None:
+                        if time.ticks_diff(now, t_end) >= 0:
+                            # mode A resamples, mode B keeps the memory
+                            if mode == "iambic-a":
+                                dit_mem, dah_mem = dit, dah
+                            self._set_key(False)
+                            sending = None
+                            t_gap = now + unit
+                    elif time.ticks_diff(now, t_gap) >= 0:
+                        if dit_mem and dah_mem:
+                            nxt = "dah" if last == "dit" else "dit"
+                        elif dit_mem:
+                            nxt = "dit"
+                        elif dah_mem:
+                            nxt = "dah"
                         else:
-                            dah_mem = False
-                        sending, last = nxt, nxt
-                        self._set_key(True)
-                        t_end = now + (unit if nxt == "dit" else 3 * unit)
-                    elif dit_mem:
-                        dit_mem = False
-                        sending, last = "dit", "dit"
-                        self._set_key(True)
-                        t_end = now + unit
-                    elif dah_mem:
-                        dah_mem = False
-                        sending, last = "dah", "dah"
-                        self._set_key(True)
-                        t_end = now + 3 * unit
+                            nxt = None
+                        if nxt:
+                            if nxt == "dit":
+                                dit_mem = False
+                            else:
+                                dah_mem = False
+                            sending, last = nxt, nxt
+                            self._set_key(True)
+                            t_end = now + (unit if nxt == "dit" else 3 * unit)
+                prev_dit, prev_dah = dit, dah
 
                 # decoder: letter gap 3u, word gap 7u
                 if (self._buf and not self.key_out
