@@ -97,9 +97,13 @@ class Exercise:
         if self.pending is None:
             # clear, explicit prompt: how many dots?
             self.screen.set_exercise("MENU", "DOTS 1-9 ?")
+        elif self.pending == 0:
+            self.screen.set_exercise("0 FULL ?", ".. OK  -- NO")
         else:
-            label = "FULL" if self.pending == 0 else "EX %d" % self.pending
-            self.screen.set_exercise(label + " ?", ".. OK  -- NO")
+            # show which drill the number maps to (1 ALPHABET, 3 KOCH, ...)
+            self.screen.set_exercise(
+                "%d %s ?" % (self.pending, NAMES.get(self.pending, "EX")),
+                ".. OK  -- NO")
 
     def select(self, n):
         """A drill was picked: ask for confirmation (.. = yes, -- = exit)."""

@@ -6,7 +6,7 @@
 import uasyncio as asyncio
 from machine import Pin, SPI
 from config import (DISPLAY_SCK, DISPLAY_MOSI, DISPLAY_CS, DISPLAY_MODULES,
-                    BOOT_MESSAGE, BOOT_TITLE, BOOT_HELP)
+                    BOOT_MESSAGE, BOOT_TITLE, BOOT_HELP, BOOT_SPEED_MS)
 
 MODULES = DISPLAY_MODULES
 COLUMNS = MODULES * 8
@@ -188,7 +188,7 @@ class Screen:
 
     async def _boot_scroll(self, msg):
         """Scroll the boot message once, then return to the normal screen."""
-        self._text = BOOT_TITLE + "     " + msg + "     "
+        self._text = (BOOT_TITLE + "   " if BOOT_TITLE else "") + msg + "   "
         end = len(self._text) * 6 + 8
         for off in range(0, end, 1):
             self._off = off
@@ -196,7 +196,7 @@ class Screen:
                 self.hw.render(self._frame_text())
             except Exception:
                 pass
-            await asyncio.sleep_ms(60)
+            await asyncio.sleep_ms(BOOT_SPEED_MS)
         self._off = 0
         self._text = self._build()
 

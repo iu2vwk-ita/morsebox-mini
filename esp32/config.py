@@ -62,10 +62,10 @@ TONE_MAX = 1000
 
 # ------------------------------------------------------------------ boot message
 # Scrolled on the LCD (or MAX7219) once at startup. Set to "" to disable.
-BOOT_MESSAGE = "Hello! 73 de IU2VWK Angelo"
-BOOT_TITLE = "MorseBox Mini"
-# Second boot message: how to use the test/exercise mode.
-BOOT_HELP = "SOS + N dots=start  ..=ok --=exit  ......=stop  ------=skip"
+BOOT_TITLE = ""                          # optional fixed first line
+BOOT_MESSAGE = "IU2VWK MORSE BOX - batti SOS per iniziare"
+BOOT_HELP = ""                           # optional second scrolled message
+BOOT_SPEED_MS = 90                       # scroll step in ms (lower = faster)
 
 DEFAULTS = {"wpm": 20, "reverse": False, "mode": "iambic-b",
             "tone": 650, "buzzer": False, "volume": 70}
