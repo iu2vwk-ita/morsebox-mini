@@ -123,13 +123,32 @@ The same trainer also runs on a classic **ESP32** with **MicroPython**. Code in
   on **GPIO25/26/27**
 * Optional **LCD1602 I2C** display: line 1 `WPM xx` + keyer mode, line 2 the
   decoded CW text
-* **Exercise mode**: key `SOS`, pick a drill with N dots, confirm with `..`.
-  Ten drills (alphabet, numbers, Koch order, random letters/digits/mixed,
-  callsigns, Q-codes, prosigns, full A-Z + 0-9). The target is shown on the
-  LCD **and** played on the piezo at the chosen WPM; `......` stops,
-  `------` skips
 * Deploy with `mpremote`:
   `git clone https://github.com/iu2vwk-ita/morsebox-mini.git && cd morsebox/esp32 && bash deploy.sh <port>`
+
+### Exercise mode (CW drills)
+
+A built-in trainer. Open the menu by keying **SOS**, pick a drill with
+**N dots**, then confirm with **`..`** (or exit with **`--`**). The target is
+shown on the LCD **and** played on the piezo at the chosen WPM, and the letter
+to key blinks.
+
+| N dots | Drill |
+|---|---|
+| `.` | Alphabet A-Z |
+| `..` | Numbers 0-9 |
+| `...` | Koch order |
+| `....` | 20 random letters |
+| `.....` | 20 random digits |
+| `......` | 20 random mixed letters/digits |
+| `.......` | Common callsigns |
+| `........` | Q-codes / abbreviations |
+| `.........` | Punctuation / prosigns |
+| `-` | Full drill: A-Z then 0-9 |
+
+During a drill: **`......`** (6 dots) = stop, **`------`** (6 dashes) = skip.
+A correct answer advances, a wrong one restarts the target. You can also start
+directly with `TEST` (full drill) or `TEST1`..`TEST9`.
 
 ### Two hardware variants
 
