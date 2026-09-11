@@ -79,6 +79,7 @@ class Exercise(threading.Thread):
         self._pos = 0
         self._flash_pos = None
         self._flash_until = 0
+        self._replay = False
         self._menu_at = 0
         self._stop = threading.Event()
 
@@ -163,6 +164,7 @@ class Exercise(threading.Thread):
         else:
             self._pos = 0
             self._flash_pos = None
+            self._replay = True
 
     # ---------------------------------------------------------- helpers
     def _broadcast(self):
@@ -229,12 +231,18 @@ class Exercise(threading.Thread):
         self._target = self.targets[self.index]
         self._pos = 0
         self._flash_pos = None
+        self._replay = False
         self._answer = None
         self._got = False
         self._show()
         self._play(self._target)
 
         while self.active and not self._got and not self._stop.is_set():
+            if self._replay:
+                self._replay = False
+                self._show()
+                self._play(self._target)
+                continue
             self._show()
             time.sleep(0.08)
         if not self.active:

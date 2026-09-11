@@ -78,6 +78,7 @@ class Exercise:
         self._pos = 0              # current character inside the target
         self._flash_pos = None     # character just keyed (blinks as feedback)
         self._flash_until = 0
+        self._replay = False       # a wrong letter asks to replay the target
 
     # ---------------------------------------------------------- control
     def enter_menu(self):
@@ -163,6 +164,7 @@ class Exercise:
         else:
             self._pos = 0          # wrong letter: start the target over
             self._flash_pos = None
+            self._replay = True    # and replay it so the student hears it again
 
     # ---------------------------------------------------------- helpers
     def _broadcast(self):
@@ -230,17 +232,23 @@ class Exercise:
                 self._clear()
             await asyncio.sleep_ms(100)
             return
-        self._target = self.targets[self.index]
-        self._pos = 0
-        self._flash_pos = None
-        self._answer = None
-        self._got = False
-        self._show()
-        await self._play(self._target)
-
-        while self.active and not self._got:
+            self._target = self.targets[self.index]
+            self._pos = 0
+            self._flash_pos = None
+            self._replay = False
+            self._answer = None
+            self._got = False
             self._show()
-            await asyncio.sleep_ms(120)
+            await self._play(self._target)
+
+            while self.active and not self._got:
+                if self._replay:
+                    self._replay = False
+                    self._show()
+                    await self._play(self._target)
+                    continue
+                self._show()
+                await asyncio.sleep_ms(120)
         if not self.active:
             return
 
