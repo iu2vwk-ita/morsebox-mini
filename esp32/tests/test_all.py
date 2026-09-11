@@ -675,6 +675,16 @@ async def main():
     assert rg3.active is True and rg3._skip is True and rg3._got is True
     print("PASS reflex: 6 dots = stop, 6 dashes = skip")
 
+    # ---- 16. easter egg: 2-line scrolling message
+    import easter as egmod
+    assert egmod._window("ABCDEFGHIJKLMNOP", 0) == "ABCDEFGHIJKLMNOP"
+    assert egmod._window("ABCDEFGHIJKLMNOP", 1) == "BCDEFGHIJKLMNOPQ"
+    eg = egmod.EasterEgg(_S(), screen=None)
+    eg._set_window(3)              # no screen -> must not crash
+    eg._clear()
+    assert "MORSE BOX" in egmod.LINE1 and "gioco" in egmod.LINE2
+    print("PASS easter: 2-line scrolling message")
+
     print("\nALL TESTS PASSED")
 
 
