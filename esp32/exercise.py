@@ -88,10 +88,11 @@ class Exercise:
         if not self.screen or not hasattr(self.screen, "set_exercise"):
             return
         if self.pending is None:
-            self.screen.set_exercise("SOS 1-9 dots", "- = full drill")
+            # clear, explicit prompt: how many dots?
+            self.screen.set_exercise("MENU", "DOTS 1-9 ?")
         else:
             label = "FULL" if self.pending == 0 else "EX %d" % self.pending
-            self.screen.set_exercise("%s?  ..=yes" % label, "-- = exit")
+            self.screen.set_exercise(label + " ?", ".. OK  -- NO")
 
     def select(self, n):
         """A drill was picked: ask for confirmation (.. = yes, -- = exit)."""
