@@ -1,7 +1,7 @@
 # Persistent settings on settings.json - same semantics as the Pi version.
 import json
 import time
-from config import DEFAULTS, SETTINGS_FILE
+from config import DEFAULTS, SETTINGS_FILE, TONE_MIN, TONE_MAX
 
 
 class Settings:
@@ -19,7 +19,7 @@ class Settings:
         d = self._data
         try:
             d["wpm"] = max(5, min(60, int(d.get("wpm", 20))))
-            d["tone"] = max(400, min(4000, int(d.get("tone", 650))))
+            d["tone"] = max(TONE_MIN, min(TONE_MAX, int(d.get("tone", 650))))
             d["volume"] = max(0, min(100, int(d.get("volume", 70))))
         except (TypeError, ValueError):
             d.update(DEFAULTS)

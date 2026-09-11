@@ -77,7 +77,9 @@ class Hub:
         self.history = ""
 
     # ---------------------------------------------------------- broadcast
-    def broadcast(self, msg):
+    def broadcast(self, msg, exclude=None):
         raw = json.dumps(msg)
         for c in self.clients:
+            if c is exclude:
+                continue
             c.send(raw)

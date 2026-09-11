@@ -57,6 +57,8 @@ HTTP_PORT = 80
 # ------------------------------------------------------------------ keyer
 HOLD_TIMEOUT_MS = 2500           # forget remote paddles that stop reporting
 SETTINGS_FILE = "settings.json"
+TONE_MIN = 500                   # sidetone range (Hz)
+TONE_MAX = 1000
 
 # ------------------------------------------------------------------ boot message
 # Scrolled on the LCD (or MAX7219) once at startup. Set to "" to disable.

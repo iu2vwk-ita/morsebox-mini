@@ -186,7 +186,10 @@ class WebServer:
                     data = self.settings.patch(msg)
                     if self.on_settings:
                         self.on_settings(data)
-                    self.hub.broadcast({"t": "settings", "settings": data})
+                    # do not echo back to the sender: the sender already shows
+                    # its own value and the echo would fight the slider
+                    self.hub.broadcast({"t": "settings", "settings": data},
+                                       exclude=client)
         except (OSError, EOFError):
             pass
         finally:

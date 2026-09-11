@@ -47,7 +47,7 @@ class Settings:
     def _clamp(self):
         d = self._data
         d["wpm"] = max(5, min(60, int(d.get("wpm", 20))))
-        d["tone"] = max(400, min(4000, int(d.get("tone", 650))))
+        d["tone"] = max(500, min(1000, int(d.get("tone", 650))))
         d["reverse"] = bool(d.get("reverse", False))
         if d.get("mode") not in ("iambic-a", "iambic-b", "straight"):
             d["mode"] = "iambic-b"
@@ -183,11 +183,13 @@ class Hub:
         with self._lock:
             self.history = ""
 
-    def broadcast(self, msg):
+    def broadcast(self, msg, exclude=None):
         raw = json.dumps(msg)
         with self._lock:
             clients = list(self.clients)
         for c in clients:
+            if c is exclude:
+                continue
             try:
                 c.send_text(raw)
             except Exception:
@@ -497,7 +499,8 @@ class Handler(BaseHTTPRequestHandler):
                 elif msg.get("t") == "settings":
                     data = self.server.settings.patch(msg)
                     _apply_screen(self.server, data)
-                    hub.broadcast({"t": "settings", "settings": data})
+                    hub.broadcast({"t": "settings", "settings": data},
+                                  exclude=conn)
         except (ConnectionError, OSError):
             pass
         finally:
