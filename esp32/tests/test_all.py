@@ -675,14 +675,15 @@ async def main():
     assert rg3.active is True and rg3._skip is True and rg3._got is True
     print("PASS reflex: 6 dots = stop, 6 dashes = skip")
 
-    # ---- 16. easter egg: 2-line scrolling message
+    # ---- 16. easter egg: >=10 screens, each transmitted in Morse at 20 WPM
     import easter as egmod
-    assert egmod._window("ABCDEFGHIJKLMNOPQRSTUVWXYZ", 0) == "ABCDEFGHIJKLMNOP"
-    assert egmod._window("ABCDEFGHIJKLMNOPQRSTUVWXYZ", 1) == "BCDEFGHIJKLMNOPQ"
+    assert len(egmod.SCREENS) >= 10, len(egmod.SCREENS)
+    assert egmod.TUNE_WPM == 20
+    for l1, l2 in egmod.SCREENS:
+        assert len(l1) <= 16 and len(l2) <= 16, (l1, l2)
     eg = egmod.EasterEgg(_S(), screen=None)
-    eg._set_window(3)              # no screen -> must not crash
+    eg._set_screen("A", "B")       # no screen -> must not crash
     eg._clear()
-    assert "MORSE BOX" in egmod.LINE1 and "gioco" in egmod.LINE2
 
     # 6 dots stop the message early
     class FakeEaster:
@@ -698,7 +699,8 @@ async def main():
     ke2._buf = "......"
     ke2._flush_letter()
     assert fe.stopped == 1, fe.stopped
-    print("PASS easter: 2-line scrolling message + 6 dots stop it")
+    print("PASS easter: %d screens keyed in Morse + 6 dots stop it"
+          % len(egmod.SCREENS))
 
     print("\nALL TESTS PASSED")
 

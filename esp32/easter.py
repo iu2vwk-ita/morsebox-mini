@@ -1,24 +1,26 @@
 # Hidden easter egg (not documented anywhere).
 #
-# Key 10 dots followed by a dash: a short 2-line message scrolls on the display
-# explaining the box, and a little tune (73) is played on the piezo.
+# Key 10 dots followed by a dash: a sequence of screens scrolls through the
+# display and each screen is transmitted in Morse at TUNE_WPM, so the sound
+# says exactly what you see. Key 6 dots to stop early.
 import uasyncio as asyncio
 from morse import MORSE
 
-LINE1 = "IU2VWK MORSE BOX - il tuo allenatore CW   "
-LINE2 = "SOS: corsi   1 punto: gioco   73 de IU2VWK   "
-# Played in Morse while the text scrolls (space = pause).
-TUNE = "IU2VWK MORSE BOX 73"
-COLS = 16
-STEP_MS = 200
-
-
-def _window(text, i, width=COLS):
-    """A scrolling 16-char window of `text` (wraps around)."""
-    if not text:
-        return " " * width
-    o = i % len(text)
-    return (text + text)[o:o + width]
+# Each entry is one screen: (line1, line2). Keep lines <= 16 chars.
+SCREENS = [
+    ("IU2VWK", "MORSE BOX"),
+    ("IL TUO", "ALLENATORE CW"),
+    ("BATTI SOS", "PER I CORSI"),
+    ("1 PUNTO", "PER IL GIOCO"),
+    ("GAME", "REFLEX 40 CHARS"),
+    ("6 PUNTI", "STOP OVUNQUE"),
+    ("WEB UI", "10.42.0.1"),
+    ("WIFI", "IU2VWK-MORSE"),
+    ("PASSWORD", "MORSE1234"),
+    ("73 DE", "IU2VWK ANGELO"),
+]
+TUNE_WPM = 20        # sound speed for the easter egg
+GAP_MS = 800         # pause between screens
 
 
 class EasterEgg:
@@ -55,56 +57,46 @@ class EasterEgg:
             await asyncio.sleep_ms(50)
 
     # ------------------------------------------------------------ helpers
-    def _set_window(self, i):
+    def _set_screen(self, line1, line2):
         if self.screen and hasattr(self.screen, "set_banner"):
-            self.screen.set_banner(_window(LINE1, i), _window(LINE2, i))
+            self.screen.set_banner(line1, line2)
 
     def _clear(self):
         if self.screen and hasattr(self.screen, "clear_banner"):
             self.screen.clear_banner()
 
-    async def _play_tune(self):
-        unit = max(20, 1200 // int(self.settings.get()["wpm"]))
-        for ch in TUNE:
+    async def _play_text(self, text):
+        unit = max(20, 1200 // TUNE_WPM)
+        for ch in text.upper():
             if self._stop:
-                break
+                return
             code = MORSE.get(ch)
             if not code:
                 continue
             for el in code:
                 if self._stop:
-                    break
+                    return
                 self.sidetone.set(True)
                 await asyncio.sleep_ms(unit if el == "." else 3 * unit)
                 self.sidetone.set(False)
                 await asyncio.sleep_ms(unit)
             await asyncio.sleep_ms(2 * unit)
 
-    async def _scroll(self):
-        """Keep scrolling both lines until cancelled."""
-        n = max(len(LINE1), len(LINE2)) + COLS
-        i = 0
-        while not self._stop:
-            self._set_window(i)
-            i = (i + 1) % n
-            await asyncio.sleep_ms(STEP_MS)
-
     async def _show_and_play(self):
         self._stop = False
         self.playing = True
-        scroll = asyncio.create_task(self._scroll())
         try:
-            self._set_window(0)
-            if self.sidetone:
-                await self._play_tune()          # sound + text together
-            else:
-                await asyncio.sleep_ms(
-                    STEP_MS * (max(len(LINE1), len(LINE2)) + COLS))
+            for line1, line2 in SCREENS:
+                if self._stop:
+                    break
+                self._set_screen(line1, line2)
+                if self.sidetone:
+                    # the sound says exactly what is on the screen
+                    await self._play_text(line1 + " " + line2)
+                else:
+                    await asyncio.sleep_ms(1500)
+                await asyncio.sleep_ms(GAP_MS)
         finally:
-            try:
-                scroll.cancel()
-            except Exception:
-                pass
             if self.sidetone:
                 self.sidetone.set(False)
             self.playing = False
