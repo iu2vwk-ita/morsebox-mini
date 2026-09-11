@@ -103,6 +103,8 @@ The same trainer also runs on a classic **ESP32** with **MicroPython**. Code in
   decoded CW text
 * Deploy with `mpremote`: `cd esp32 && bash deploy.sh <port>`
 
+![MorseBox ESP32 with LCD1602](box-lcd.png)
+
 ## Box and fair material
 
 * `qr-1-wifi.png` / `qr-2-pagina.png`. The **WIFI** and **APP** QR codes for
