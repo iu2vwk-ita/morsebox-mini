@@ -13,6 +13,20 @@ works fine without one.
 > * **ESP32 / MicroPython** — port in the [`esp32/`](esp32/) folder, with LCD1602 I2C support.
 >   Wiring and setup: [`esp32/README-ESP32.md`](esp32/README-ESP32.md)
 
+## Quick install
+
+**Raspberry Pi** (Raspberry Pi OS) — one command:
+
+```bash
+sudo apt install -y git && git clone https://github.com/iu2vwk-ita/morsebox-mini.git morsebox && cd morsebox && sudo bash install.sh
+```
+
+**ESP32 / MicroPython** — one command (first install the tool: `pip install mpremote`):
+
+```bash
+git clone https://github.com/iu2vwk-ita/morsebox-mini.git && cd morsebox/esp32 && bash deploy.sh
+```
+
 ![MorseBox assembled](box.png)
 
 ## What it does
@@ -70,17 +84,25 @@ power wires can share. Each `S` needs its own GPIO. Default buzzer mode is
 
 ## Install
 
+One command on Raspberry Pi OS (clones the repo and installs everything):
+
 ```bash
-sudo apt install git -y
-git clone <this-repo> morsebox
-cd morsebox
-sudo bash install.sh
+sudo apt install -y git && git clone https://github.com/iu2vwk-ita/morsebox-mini.git morsebox && cd morsebox && sudo bash install.sh
 ```
 
 That sets the hostname to `iu2vwk-morse`, installs the autostart service, and
 brings up the `IU2VWK-MORSE` access point (password `morse1234`, change it at
 the top of `install.sh` first if you like). From then on, power means trainer
 is on.
+
+Prefer to see the steps? The same thing, one at a time:
+
+```bash
+sudo apt install -y git
+git clone https://github.com/iu2vwk-ita/morsebox-mini.git morsebox
+cd morsebox
+sudo bash install.sh
+```
 
 Three buzzers:
 
@@ -101,7 +123,8 @@ The same trainer also runs on a classic **ESP32** with **MicroPython**. Code in
   on **GPIO25/26/27**
 * Optional **LCD1602 I2C** display: line 1 `WPM xx` + keyer mode, line 2 the
   decoded CW text
-* Deploy with `mpremote`: `cd esp32 && bash deploy.sh <port>`
+* Deploy with `mpremote`:
+  `git clone https://github.com/iu2vwk-ita/morsebox-mini.git && cd morsebox/esp32 && bash deploy.sh <port>`
 
 ### Two hardware variants
 
