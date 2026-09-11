@@ -263,7 +263,22 @@ async def main():
     exr3._target = "5"
     exr3.feed("5", ".....")              # 5 dots is an answer, not STOP
     assert exr3._answer == "5", exr3._answer
-    print("PASS exercise feed: split STOP/SKIP + 5-dot answer")
+
+    # per-letter progress on a callsign-like target
+    exr4 = exmod.Exercise(_S(), _H())
+    exr4.start(7)
+    exr4._target = "CQ"
+    exr4.feed("C", ".-.-.")
+    assert exr4._pos == 1 and exr4._got is False
+    exr4.feed("Q", "--.-")
+    assert exr4._answer == "CQ" and exr4._got
+    exr5 = exmod.Exercise(_S(), _H())
+    exr5.start(7)
+    exr5._target = "CQ"
+    exr5.feed("C", ".-.-.")
+    exr5.feed("X", "-..-")               # wrong -> restart the target
+    assert exr5._pos == 0
+    print("PASS exercise feed: split STOP/SKIP + 5-dot answer + per-letter")
 
     # ---- 4. WS accept (RFC 6455 vector)
     acc = wsproto.ws_accept("dGhlIHNhbXBsZSBub25jZQ==")
