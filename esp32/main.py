@@ -77,6 +77,13 @@ def main():
         except Exception:
             pass
 
+    def on_clear():
+        if screen and hasattr(screen, "clear_text"):
+            try:
+                screen.clear_text()
+            except Exception:
+                pass
+
     on_settings(settings.get())
     print("free RAM:", gc.mem_free())
 
@@ -84,7 +91,8 @@ def main():
     easter = EasterEgg(settings, sidetone=sidetone, screen=screen)
     keyer = Keyer(paddle, settings, hub, sidetone=sidetone, screen=screen,
                   exercise=exercise, easter=easter)
-    server = WebServer(settings, hub, paddle, on_settings=on_settings)
+    server = WebServer(settings, hub, paddle, on_settings=on_settings,
+                       on_clear=on_clear)
 
     async def wdt_task():
         while True:

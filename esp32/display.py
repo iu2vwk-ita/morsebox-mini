@@ -138,6 +138,11 @@ class Screen:
         self.decode = self.decode[-24:]
         self._text = self._build()
 
+    def clear_text(self):
+        """Wipe the decoded text (web UI 'Clear' button)."""
+        self.decode = ""
+        self._text = self._build()
+
     def set_exercise(self, line1, line2=""):
         self._text = (line1 + "   " + line2).upper()
         self._off = 0

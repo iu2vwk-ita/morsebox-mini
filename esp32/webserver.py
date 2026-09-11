@@ -23,11 +23,12 @@ MIME = {".html": "text/html; charset=utf-8",
 
 
 class WebServer:
-    def __init__(self, settings, hub, paddle, on_settings=None):
+    def __init__(self, settings, hub, paddle, on_settings=None, on_clear=None):
         self.settings = settings
         self.hub = hub
         self.paddle = paddle
         self.on_settings = on_settings
+        self.on_clear = on_clear
 
     async def start(self):
         await asyncio.start_server(self._handle, "0.0.0.0", HTTP_PORT)
@@ -196,6 +197,16 @@ class WebServer:
                         # shows its own value and the echo fights the slider
                         self.hub.broadcast({"t": "settings", "settings": data},
                                            exclude=client)
+                    except Exception:
+                        pass
+                elif msg.get("t") == "clear":
+                    # 'Clear' on the web UI: wipe the text and the physical
+                    # screen too, on every connected client
+                    try:
+                        self.hub.clear_text()
+                        if self.on_clear:
+                            self.on_clear()
+                        self.hub.broadcast({"t": "clear"}, exclude=client)
                     except Exception:
                         pass
         except (OSError, EOFError):

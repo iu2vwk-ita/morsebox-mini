@@ -505,6 +505,17 @@ class Handler(BaseHTTPRequestHandler):
                                       exclude=conn)
                     except Exception:
                         pass
+                elif msg.get("t") == "clear":
+                    # 'Clear' on the web UI: wipe the text and the physical
+                    # screen too, on every connected client
+                    try:
+                        hub.clear_text()
+                        scr = getattr(self.server, "screen", None)
+                        if scr is not None and hasattr(scr, "clear_text"):
+                            scr.clear_text()
+                        hub.broadcast({"t": "clear"}, exclude=conn)
+                    except Exception:
+                        pass
         except (ConnectionError, OSError):
             pass
         except Exception:

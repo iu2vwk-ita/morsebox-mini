@@ -81,6 +81,8 @@ function connect() {
     } else if (m.t === 'txt') {
       els.decoded.textContent += m.ch;
       scrollRx();
+    } else if (m.t === 'clear') {
+      els.decoded.textContent = '';
     }
   };
 }
@@ -164,7 +166,10 @@ els.vol.oninput = () => {
   clearTimeout(volTimer);
   volTimer = setTimeout(saveSettings, 80);
 };
-els.clear.onclick = () => { els.decoded.textContent = ''; };
+els.clear.onclick = () => {
+  els.decoded.textContent = '';
+  send({ t: 'clear' });          // also clear the device screen
+};
 
 /* ---------------- touch paddles ---------------- */
 function bindHold(el, set) {

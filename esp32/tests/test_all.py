@@ -58,8 +58,11 @@ class FakeHub:
     def snapshot_text(self):
         return self.history
 
-    def broadcast(self, m):
+    def broadcast(self, m, exclude=None):
         self.events.append(m)
+
+    def clear_text(self):
+        self.history = ""
 
     def push_text(self, ch):
         self.history += ch
@@ -466,6 +469,23 @@ async def main():
     assert b"101 Switching Protocols" in w.data
     assert b"s3pPLMBiTxaQ9kYGzzhZRbK+xOo=" in w.data
     print("PASS web: 101 handshake + Sec-WebSocket-Accept")
+
+    # ---- 11. clear: wipe hub text + physical screen, notify the other clients
+    calls = []
+    hub2 = FakeHub()
+    hub2.history = "ABC"
+    srv2 = webserver.WebServer(s, hub2, FakePaddleBackend(),
+                               on_clear=lambda: calls.append(1))
+    payload = b'{"t":"clear"}'
+    mask = b"\x01\x02\x03\x04"
+    masked = bytes(c ^ mask[i & 3] for i, c in enumerate(payload))
+    frame = bytes([0x81, 0x80 | len(payload)]) + mask + masked
+    w = FakeWriter()
+    await srv2._serve_ws(FakeReqReader(frame), w, "dGhlIHNhbXBsZSBub25jZQ==")
+    assert calls == [1], calls
+    assert hub2.snapshot_text() == ""
+    assert any(e.get("t") == "clear" for e in hub2.events)
+    print("PASS clear: screen + hub text wiped, peers notified")
 
     print("\nALL TESTS PASSED")
 

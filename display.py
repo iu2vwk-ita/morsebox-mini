@@ -223,6 +223,13 @@ class Screen:
             self.decode = self.decode[-24:]
             self._text = self._build()
 
+    def clear_text(self):
+        """Wipe the decoded text (web UI 'Clear' button)."""
+        with self._lock:
+            self.decode = ""
+            if not getattr(self, "_exercise", False):
+                self._text = self._build()
+
     def _frame_text(self):
         # columns per character (5) + 1 space = 6
         cols = [0] * (COLUMNS + 20)

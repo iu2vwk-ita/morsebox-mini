@@ -175,6 +175,11 @@ class Screen:
         self.decode = self.decode[-(LCD_COLS - 1):]
         self._dirty = True
 
+    def clear_text(self):
+        """Wipe the decoded text (web UI 'Clear' button)."""
+        self.decode = ""
+        self._dirty = True
+
     async def _boot_scroll(self, msg):
         """Scroll the boot message once, then return to the normal screen."""
         self.lcd.move_to(0, 0)
