@@ -123,6 +123,11 @@ The same trainer also runs on a classic **ESP32** with **MicroPython**. Code in
   on **GPIO25/26/27**
 * Optional **LCD1602 I2C** display: line 1 `WPM xx` + keyer mode, line 2 the
   decoded CW text
+* **Exercise mode**: key `SOS`, pick a drill with N dots, confirm with `..`.
+  Ten drills (alphabet, numbers, Koch order, random letters/digits/mixed,
+  callsigns, Q-codes, prosigns, full A-Z + 0-9). The target is shown on the
+  LCD **and** played on the piezo at the chosen WPM; `......` stops,
+  `------` skips
 * Deploy with `mpremote`:
   `git clone https://github.com/iu2vwk-ita/morsebox-mini.git && cd morsebox/esp32 && bash deploy.sh <port>`
 
