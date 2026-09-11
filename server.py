@@ -393,9 +393,12 @@ class Keyer(threading.Thread):
                 # current element, so a normal hold added an extra element
                 # (e.g. .- came out as .-.-).
                 if sending is None:
-                    if dit:
+                    # Release grace: a small release overshoot past the element
+                    # must not add an extra element (see esp32/keyer.py).
+                    grace = now - t_end < unit / 2
+                    if dit and not (last == "dit" and grace):
                         dit_mem = True
-                    if dah:
+                    if dah and not (last == "dah" and grace):
                         dah_mem = True
                 else:
                     if dit and not prev_dit:
@@ -405,9 +408,16 @@ class Keyer(threading.Thread):
 
                 if sending is not None:
                     if now >= t_end:
-                        # mode A resamples, mode B keeps the memory
+                        # never latch the paddle that just sent this element
+                        if last == "dit":
+                            dit_mem = False
+                        else:
+                            dah_mem = False
                         if mode == "iambic-a":
-                            dit_mem, dah_mem = dit, dah
+                            if not dit:
+                                dit_mem = False
+                            if not dah:
+                                dah_mem = False
                         self._set_key(False)
                         sending = None
                         t_gap = now + unit

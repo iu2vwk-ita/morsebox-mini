@@ -1,0 +1,15 @@
+el=. dur=60 unit=60
+el=- dur=180 unit=60
+letter '.-' -> 'A'
+el=. dur=60 unit=60
+letter '.' -> 'E'
+el=. dur=61 unit=60
+el=- dur=180 unit=60
+letter '.-' -> 'A'
+el=. dur=61 unit=60
+letter '.' -> 'E'
+el=- dur=180 unit=60
+letter '-' -> 'T'
+letter '.-' -> 'A'
+el=. dur=60 unit=60
+letter '.' -> 'E'

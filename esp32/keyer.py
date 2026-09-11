@@ -178,9 +178,15 @@ class Keyer:
                     # generating the current element, so a normal hold added an
                     # extra element (e.g. .- came out as .-.-).
                     if sending is None:
-                        if dit:
+                        # Release grace: the paddle that just sent an element
+                        # must stay closed for at least half a gap before it
+                        # counts as "keep going". A small release overshoot
+                        # (a few ms past the element) no longer adds an extra
+                        # element, which is what broke dot-before-dash words.
+                        grace = time.ticks_diff(now, t_end) < unit // 2
+                        if dit and not (last == "dit" and grace):
                             dit_mem = True
-                        if dah:
+                        if dah and not (last == "dah" and grace):
                             dah_mem = True
                     else:
                         if dit and not prev_dit:
@@ -190,9 +196,20 @@ class Keyer:
 
                     if sending is not None:
                         if time.ticks_diff(now, t_end) >= 0:
-                            # mode A resamples, mode B keeps the memory
+                            # Never latch the paddle that just sent this
+                            # element: a few ms of release overshoot must not
+                            # add an extra element. The gap phase re-latches it
+                            # only if it is genuinely held (see grace below).
+                            if last == "dit":
+                                dit_mem = False
+                            else:
+                                dah_mem = False
                             if mode == "iambic-a":
-                                dit_mem, dah_mem = dit, dah
+                                # mode A also forgets a press already released
+                                if not dit:
+                                    dit_mem = False
+                                if not dah:
+                                    dah_mem = False
                             self._set_key(False)
                             sending = None
                             t_gap = now + unit
