@@ -12,21 +12,28 @@ class Sidetone:
         self.freq = int(freq)
         self.volume = 0.7
         self._on = False
+        self._pins = list(pins)
         self._pwms = []
         self._ok = False
-        for p in pins:
-            try:
-                try:
-                    pwm = PWM(Pin(p), freq=self.freq, duty_u16=0)
-                except TypeError:
-                    # older firmware: no duty_u16 in the constructor
-                    pwm = PWM(Pin(p))
-                    pwm.freq(self.freq)
-                    pwm.duty(0)
+        for p in self._pins:
+            pwm = self._make_pwm(p, self.freq)
+            if pwm is not None:
                 self._pwms.append(pwm)
-            except Exception:
-                pass
         self._ok = bool(self._pwms)
+
+    @staticmethod
+    def _make_pwm(pin, freq):
+        try:
+            try:
+                return PWM(Pin(pin), freq=freq, duty_u16=0)
+            except TypeError:
+                # older firmware: no duty_u16 in the constructor
+                pwm = PWM(Pin(pin))
+                pwm.freq(freq)
+                pwm.duty(0)
+                return pwm
+        except Exception:
+            return None
 
     # ------------------------------------------------------------ helpers
     @staticmethod
@@ -57,17 +64,27 @@ class Sidetone:
         f = int(f)
         if f == self.freq:
             return
-        self.freq = f
-        for pwm in self._pwms:
+        ok = False
+        for i, pwm in enumerate(self._pwms):
             try:
                 pwm.freq(f)
+                ok = True
+                continue
             except Exception:
-                # some firmware builds only expose init() for changes
-                try:
-                    pwm.init(freq=f)
-                except Exception:
-                    pass
-        # changing the frequency can reset the duty: re-apply the current state
+                pass
+            # fallback: rebuild this PWM at the new frequency
+            try:
+                pwm.deinit()
+            except Exception:
+                pass
+            new = self._make_pwm(self._pins[i], f)
+            if new is not None:
+                self._pwms[i] = new
+                ok = True
+        # only remember the new frequency if we actually applied it, otherwise
+        # a failed change would leave the sidetone stuck on the old note
+        if ok:
+            self.freq = f
         self._apply()
 
     def set_volume(self, v):

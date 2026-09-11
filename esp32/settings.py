@@ -1,11 +1,13 @@
 # Persistent settings on settings.json - same semantics as the Pi version.
 import json
+import time
 from config import DEFAULTS, SETTINGS_FILE
 
 
 class Settings:
     def __init__(self):
         self._data = dict(DEFAULTS)
+        self._last_save = 0
         try:
             with open(SETTINGS_FILE) as f:
                 self._data.update(json.load(f))
@@ -36,9 +38,14 @@ class Settings:
                 self._data[k] = p[k]
         self._clamp()
         data = dict(self._data)
-        try:
-            with open(SETTINGS_FILE, "w") as f:
-                json.dump(data, f)
-        except OSError:
-            pass
+        # save to flash at most once per second (a slider drag sends many
+        # updates; flash writes block the event loop and wear the memory)
+        now = time.ticks_ms()
+        if time.ticks_diff(now, self._last_save) > 1000:
+            self._last_save = now
+            try:
+                with open(SETTINGS_FILE, "w") as f:
+                    json.dump(data, f)
+            except OSError:
+                pass
         return data
