@@ -103,7 +103,21 @@ The same trainer also runs on a classic **ESP32** with **MicroPython**. Code in
   decoded CW text
 * Deploy with `mpremote`: `cd esp32 && bash deploy.sh <port>`
 
-![MorseBox ESP32 with LCD1602](box-lcd.png)
+### Two hardware variants
+
+* **With LCD1602** — the display shows `WPM xx` and the keyer mode on line 1,
+  and the decoded CW on line 2.
+
+  ![MorseBox ESP32 with LCD1602](box-lcd.png)
+
+* **Without LCD (simpler)** — no display at all: everything is controlled from
+  the phone web app (speed, mode, tone, volume and the decoded text live on
+  your phone). This is the easiest build.
+
+  ![MorseBox ESP32 without LCD](box-noscreen.png)
+
+The **`CW BOX SMALL.3mf`** file already includes a **second print plate** with
+the no-screen model, so both versions can be printed from the same file.
 
 ## Box and fair material
 
