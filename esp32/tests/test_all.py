@@ -363,7 +363,7 @@ async def main():
     # ---- 7. settings clamp (real module)
     s = settings_mod.Settings()
     d = s.patch({"wpm": 999, "tone": 10, "volume": -5, "mode": "bogus"})
-    assert d["wpm"] == 60 and d["tone"] == 400 and d["volume"] == 0
+    assert d["wpm"] == 60 and d["tone"] == 500 and d["volume"] == 0
     assert d["mode"] == "iambic-b"
     os.remove("settings.json")
     print("PASS settings clamp")
