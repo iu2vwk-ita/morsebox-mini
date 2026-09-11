@@ -200,6 +200,19 @@ class Screen:
     def set_wpm(self, w):
         with self._lock:
             self.wpm = str(w)
+            if not getattr(self, "_exercise", False):
+                self._text = self._build()
+
+    def set_exercise(self, line1, line2=""):
+        """Show the exercise prompt/target instead of WPM + decoded text."""
+        with self._lock:
+            self._exercise = True
+            self._text = (line1 + "   " + line2).upper()
+            self._off = 0
+
+    def clear_exercise(self):
+        with self._lock:
+            self._exercise = False
             self._text = self._build()
 
     def add_char(self, ch):

@@ -1,4 +1,4 @@
-# MorseBox exercise mode.
+# MorseBox exercise mode (Raspberry Pi version).
 #
 # Open the menu with SOS, then pick a drill with N dots and confirm with "..":
 #   SOS                  = open the menu
@@ -9,13 +9,13 @@
 #   ......  (6 dots)     = STOP
 #   ------  (6 dashes)   = SKIP
 #
-# The device SHOWS the target on the LCD and PLAYS it on the piezo (always
+# The device SHOWS the target on the matrix and PLAYS it on the piezo (always
 # both, together) at the chosen WPM, then waits for the student to key it back.
 # For multi-letter targets the whole word is shown and the letter to key blinks.
 # You can also start directly with TEST (full drill) or TEST1..TEST9.
 import random
+import threading
 import time
-import uasyncio as asyncio
 from morse import MORSE
 
 # Koch learning order (letters + digits)
@@ -56,10 +56,11 @@ def build(n):
     return list("ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789")
 
 
-class Exercise:
-    """Runs the exercise state machine as an asyncio task."""
+class Exercise(threading.Thread):
+    """Runs the exercise state machine in its own thread."""
 
     def __init__(self, settings, hub, sidetone=None, screen=None):
+        super().__init__(daemon=True)
         self.settings = settings
         self.hub = hub
         self.sidetone = sidetone
@@ -75,12 +76,14 @@ class Exercise:
         self._target = ""
         self._answer = None
         self._got = False
-        self._pos = 0              # current character inside the target
-        self._flash_pos = None     # character just keyed (blinks as feedback)
+        self._pos = 0
+        self._flash_pos = None
         self._flash_until = 0
-        self._run_char = None      # last run of dots/dashes (for STOP/SKIP)
+        self._run_char = None
         self._run_len = 0
         self._run_at = 0
+        self._menu_at = 0
+        self._stop = threading.Event()
 
     # ---------------------------------------------------------- control
     def enter_menu(self):
@@ -88,7 +91,7 @@ class Exercise:
         self.active = False
         self.menu = True
         self.pending = None
-        self._menu_at = time.ticks_ms()
+        self._menu_at = time.monotonic()
         self._menu_show()
         self.hub.broadcast({"t": "ex", "on": False, "menu": True})
 
@@ -96,7 +99,6 @@ class Exercise:
         if not self.screen or not hasattr(self.screen, "set_exercise"):
             return
         if self.pending is None:
-            # clear, explicit prompt: how many dots?
             self.screen.set_exercise("MENU", "DOTS 1-9 ?")
         else:
             label = "FULL" if self.pending == 0 else "EX %d" % self.pending
@@ -105,7 +107,7 @@ class Exercise:
     def select(self, n):
         """A drill was picked: ask for confirmation (.. = yes, -- = exit)."""
         self.pending = n
-        self._menu_at = time.ticks_ms()
+        self._menu_at = time.monotonic()
         self._menu_show()
 
     def confirm(self):
@@ -137,7 +139,7 @@ class Exercise:
         """
         if not self.active:
             return
-        now = time.ticks_ms()
+        now = time.monotonic()
         c = None
         if buf:
             s = set(buf)
@@ -146,7 +148,7 @@ class Exercise:
             elif s == {"-"}:
                 c = "-"
         if c:
-            if self._run_char == c and time.ticks_diff(now, self._run_at) < 1500:
+            if self._run_char == c and now - self._run_at < 1.5:
                 self._run_len += len(buf)
             else:
                 self._run_char, self._run_len = c, len(buf)
@@ -165,14 +167,14 @@ class Exercise:
         # per-character progress: key the target one letter at a time
         if self._pos < len(self._target) and ch and \
                 ch.upper() == self._target[self._pos].upper():
-            self._flash_pos = self._pos          # blink the letter just keyed
-            self._flash_until = now + 450
+            self._flash_pos = self._pos
+            self._flash_until = now + 0.45
             self._pos += 1
             if self._pos >= len(self._target):
                 self._answer = self._target
                 self._got = True
         else:
-            self._pos = 0          # wrong letter: start the target over
+            self._pos = 0
             self._flash_pos = None
 
     # ---------------------------------------------------------- helpers
@@ -187,36 +189,33 @@ class Exercise:
         total = len(self.targets)
         line1 = "%s %d/%d" % (self.name, self.index + 1, total)
         chars = list(self._target)
-        now = time.ticks_ms()
-        if (self._flash_pos is not None
-                and time.ticks_diff(now, self._flash_until) < 0):
-            # the letter just keyed blinks as confirmation
-            if (now // 150) % 2 == 0:
+        now = time.monotonic()
+        if self._flash_pos is not None and now < self._flash_until:
+            if int(now / 0.12) % 2 == 0:
                 chars[self._flash_pos] = "_"
         else:
             self._flash_pos = None
-            # otherwise the letter to key next blinks (slowly, to spare the I2C)
-            if self._pos < len(chars) and (now // 450) % 2 == 0:
+            if self._pos < len(chars) and int(now / 0.35) % 2 == 0:
                 chars[self._pos] = "_"
         self.screen.set_exercise(line1, "".join(chars))
 
-    async def _play(self, text):
+    def _play(self, text):
         if not self.sidetone:
             return
         self.playing = True
         try:
-            unit = max(20, 1200 // int(self.settings.get()["wpm"]))
+            unit = max(0.02, 1.2 / int(self.settings.get()["wpm"]))
             for ch in text.upper():
                 code = MORSE.get(ch)
                 if not code:
                     continue
                 for el in code:
                     self.sidetone.set(True)
-                    await asyncio.sleep_ms(unit if el == "." else 3 * unit)
+                    time.sleep(unit if el == "." else 3 * unit)
                     self.sidetone.set(False)
-                    await asyncio.sleep_ms(unit)
-                await asyncio.sleep_ms(2 * unit)   # letter gap
-            await asyncio.sleep_ms(2 * unit)
+                    time.sleep(unit)
+                time.sleep(2 * unit)   # letter gap
+            time.sleep(2 * unit)
         finally:
             self.sidetone.set(False)
             self.playing = False
@@ -232,15 +231,14 @@ class Exercise:
         if self.screen and hasattr(self.screen, "clear_exercise"):
             self.screen.clear_exercise()
 
-    # ---------------------------------------------------------- task
-    async def run(self):
-        while True:
+    # ---------------------------------------------------------- thread
+    def run(self):
+        while not self._stop.is_set():
             if not self.active:
-                if self.menu and time.ticks_diff(
-                        time.ticks_ms(), self._menu_at) > 8000:
+                if self.menu and time.monotonic() - self._menu_at > 8:
                     self.menu = False
                     self._clear()
-                await asyncio.sleep_ms(100)
+                time.sleep(0.1)
                 continue
             self._target = self.targets[self.index]
             self._pos = 0
@@ -248,11 +246,11 @@ class Exercise:
             self._answer = None
             self._got = False
             self._show()
-            await self._play(self._target)
+            self._play(self._target)
 
-            while self.active and not self._got:
+            while self.active and not self._got and not self._stop.is_set():
                 self._show()
-                await asyncio.sleep_ms(120)
+                time.sleep(0.08)
             if not self.active:
                 continue
 
@@ -260,7 +258,7 @@ class Exercise:
             if ans == "__STOP__":
                 self.active = False
                 self._finish()
-                await asyncio.sleep_ms(3000)
+                time.sleep(3)
                 self._clear()
                 continue
             if ans == "__SKIP__":
@@ -272,13 +270,14 @@ class Exercise:
                 self.index += 1
                 self._run_char = None
                 self._run_len = 0
-            # wrong answer: repeat the same target (keep the dot/dash run so a
-            # STOP/SKIP split across two groups still accumulates)
 
             if self.index >= len(self.targets):
                 self.active = False
                 self._finish()
-                await asyncio.sleep_ms(3000)
+                time.sleep(3)
                 self._clear()
             else:
                 self._broadcast()
+
+    def stop(self):
+        self._stop.set()

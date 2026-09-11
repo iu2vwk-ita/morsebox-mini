@@ -93,6 +93,7 @@ class Screen:
         self.mode = "iambic-b"
         self.decode = ""
         self.exercise = None
+        self._last1 = self._last2 = None
         self._dirty = True
         self._refresh()
 
@@ -117,15 +118,21 @@ class Screen:
         else:
             line1 = self._pad(self._line1(), LCD_COLS)
             line2 = self._pad(self.decode, LCD_COLS)
-        self.lcd.move_to(0, 0)
-        self.lcd.putstr(line1)
-        if LCD_ROWS > 1:
+        # only rewrite the line that actually changed (less I2C = less jitter)
+        if line1 != self._last1:
+            self.lcd.move_to(0, 0)
+            self.lcd.putstr(line1)
+            self._last1 = line1
+        if LCD_ROWS > 1 and line2 != self._last2:
             self.lcd.move_to(0, 1)
             self.lcd.putstr(line2)
+            self._last2 = line2
 
     def set_exercise(self, line1, line2=""):
-        self.exercise = (line1, line2)
-        self._dirty = True
+        new = (line1, line2)
+        if self.exercise != new:          # only redraw when the text changes
+            self.exercise = new
+            self._dirty = True
 
     def clear_exercise(self):
         self.exercise = None

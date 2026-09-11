@@ -19,6 +19,8 @@ import threading
 import time
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import urlparse
+from morse import MORSE, FROM_MORSE
+from exercise import Exercise
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 SETTINGS_FILE = os.path.join(BASE_DIR, "settings.json")
@@ -29,21 +31,6 @@ DEFAULTS = {"wpm": 20, "reverse": False, "mode": "iambic-b",
 
 DIT_PIN, DAH_PIN, KEY_PIN, BUZZ_PIN = 17, 27, 22, 24
 HOLD_TIMEOUT = 2.5  # s: forget remote paddles that stop reporting
-
-MORSE = {"A": ".-", "B": "-...", "C": "-.-.", "D": "-..", "E": ".",
-         "F": "..-.", "G": "--.", "H": "....", "I": "..", "J": ".---",
-         "K": "-.-", "L": ".-..", "M": "--", "N": "-.", "O": "---",
-         "P": ".--.", "Q": "--.-", "R": ".-.", "S": "...", "T": "-",
-         "U": "..-", "V": "...-", "W": ".--", "X": "-..-", "Y": "-.--",
-         "Z": "--..", "0": "-----", "1": ".----", "2": "..---",
-         "3": "...--", "4": "....-", "5": ".....", "6": "-....",
-         "7": "--...", "8": "---..", "9": "----.", ".": ".-.-.-",
-         ",": "--..--", "?": "..--..", "/": "-..-.", "=": "-...-",
-         "+": ".-.-.", "-": "-....-", ":": "---...", "'": ".----.",
-         '"': ".-..-.", "_": "..--.-", "$": "...-..-", "&": ".-...",
-         "@": ".--.-.", "!": "-.-.--"}
-FROM_MORSE = {v: k for k, v in MORSE.items()}
-
 
 # ---------------------------------------------------------------- settings
 class Settings:
@@ -206,11 +193,12 @@ class Hub:
 class Keyer(threading.Thread):
     """Iambic keyer + decoder. 1 ms tick, events via hub.broadcast."""
 
-    def __init__(self, gpio, settings, hub):
+    def __init__(self, gpio, settings, hub, exercise=None):
         super().__init__(daemon=True)
         self.gpio = gpio
         self.settings = settings
         self.hub = hub
+        self.exercise = exercise
         self.key_out = False
         self._stop = threading.Event()
         self.screen = None  # matrix display (optional)
@@ -223,7 +211,7 @@ class Keyer(threading.Thread):
         self.hub.broadcast({"t": "key", "on": on,
                             "dit": getattr(self, "_in_dit", False),
                             "dah": getattr(self, "_in_dah", False)})
-        if self.sidetone:
+        if self.sidetone and not (self.exercise and self.exercise.playing):
             self.sidetone.set(on)
         now = time.monotonic()
         if on:
@@ -238,12 +226,59 @@ class Keyer(threading.Thread):
 
     def _flush_letter(self):
         if self._buf:
-            ch = FROM_MORSE.get(self._buf, "◇")
-            self.hub.push_text(ch)
-            self.hub.broadcast({"t": "txt", "ch": ch})
-            if self.screen:
-                self.screen.add_char(ch)
+            buf = self._buf
+            ch = FROM_MORSE.get(buf, "◇")
+            if self.exercise and self.exercise.active:
+                # during an exercise the decoded letter is the answer
+                self.exercise.feed(ch, buf)
+            elif self.exercise and self.exercise.menu:
+                self._menu_select(buf)
+            else:
+                self.hub.push_text(ch)
+                self.hub.broadcast({"t": "txt", "ch": ch})
+                if self.screen:
+                    self.screen.add_char(ch)
+                self._check_exercise_trigger(buf)
             self._buf = ""
+
+    def _menu_select(self, buf):
+        """Menu: N dots = exercise N, one dash = full drill. Then confirm:
+        .. = start, -- = exit."""
+        ex = self.exercise
+        if ex.pending is not None:
+            if buf == "..":
+                ex.confirm()
+            else:
+                ex.cancel()
+            return
+        if buf == "-":
+            ex.select(0)
+        elif buf and set(buf) == {"."}:
+            n = len(buf)
+            if 1 <= n <= 9:
+                ex.select(n)
+            else:
+                ex.menu = False
+        else:
+            ex.menu = False
+
+    def _check_exercise_trigger(self, buf=None):
+        """Start an exercise on SOS (menu) or TEST / TESTn."""
+        if not self.exercise:
+            return
+        if buf == "...---...":
+            self.exercise.enter_menu()
+            return
+        txt = self.hub.snapshot_text().replace(" ", "").upper()
+        if txt.endswith("SOS"):
+            self.exercise.enter_menu()
+            return
+        for n in range(9, 0, -1):
+            if txt.endswith("TEST%d" % n):
+                self.exercise.start(n)
+                return
+        if txt.endswith("TEST"):
+            self.exercise.start(0)
 
     def run(self):
         dit_mem = dah_mem = False
@@ -614,6 +649,11 @@ def main():
             decoder.start()
     except Exception as e:
         print("Audio not initialized: %s" % e, flush=True)
+
+    # Exercise / course mode: works with the piezo and the display if present
+    exercise = Exercise(settings, hub, sidetone=sidetone, screen=screen)
+    keyer.exercise = exercise
+    exercise.start()
 
     srv = ThreadingHTTPServer((args.host, args.port), Handler)
     srv.daemon_threads = True
