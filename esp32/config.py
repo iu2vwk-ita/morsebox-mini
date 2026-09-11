@@ -70,6 +70,11 @@ SETTINGS_FILE = "settings.json"
 TONE_MIN = 500                   # sidetone range (Hz)
 TONE_MAX = 1000
 
+# While choosing a program in the SOS menu (1-10 dots) the keyer runs slowly at
+# this speed, so the selection is easy. Once the drill starts it uses the normal
+# WPM setting (default 20, changeable from the web UI).
+MENU_WPM = 10
+
 # ------------------------------------------------------------------ boot message
 # Scrolled on the LCD (or MAX7219) once at startup. Set to "" to disable.
 BOOT_TITLE = ""                          # optional fixed first line

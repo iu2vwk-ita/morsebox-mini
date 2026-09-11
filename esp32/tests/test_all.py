@@ -249,18 +249,38 @@ async def main():
     ex.menu = False
     ke._check_exercise_trigger("...---...")
     assert ex.menu is True
-    ke._menu_select("..")               # select exercise 2
-    assert ex.pending == 2, ex.pending
+    ke._menu_select("..")               # menu item 2 -> drill 1 (ALPHABET)
+    assert ex.pending == 1, ex.pending
     assert ex.started is None
     ke._menu_select("..")               # confirm
-    assert ex.started == 2, ex.started
+    assert ex.started == 1, ex.started
     ex.started = None
     ex.pending = None
     ke._menu_select("-")                # full drill
     assert ex.pending == 0, ex.pending
     ke._menu_select("--")               # exit
     assert ex.menu is False and ex.pending is None
-    print("PASS exercise: SOS menu + select + ..confirm / --exit")
+
+    # menu item 1 (one dot) starts the Reflex game, not a drill
+    class FakeReflex:
+        def __init__(self):
+            self.started = 0
+            self.active = False
+
+        def start(self):
+            self.started += 1
+            self.active = True
+
+        def feed(self, ch, buf):
+            pass
+
+    exg, fr = FakeExercise(), FakeReflex()
+    kg = keyer.Keyer(FakePaddle(), FakeSettings(), FakeHub(),
+                     exercise=exg, reflex=fr)
+    kg._menu_select(".")
+    assert fr.started == 1, fr.started
+    assert exg.started is None and exg.menu is False
+    print("PASS exercise: SOS menu + select + ..confirm / --exit + item 1 = GAME")
 
     # ---- 3c. exercise feed: split STOP/SKIP still detected
     import exercise as exmod
@@ -336,8 +356,9 @@ async def main():
     assert exm2.menu is False and exm2.pending is None and exm2.active is False
 
     # the scrolled list shows every course with its number and name
+    assert "1 GAME" in exmod.MENU_LIST
     for n in range(1, 10):
-        assert ("%d %s" % (n, exmod.NAMES[n])) in exmod.MENU_LIST
+        assert ("%d %s" % (n + 1, exmod.NAMES[n])) in exmod.MENU_LIST
     assert "- FULL" in exmod.MENU_LIST
     print("PASS exercise: menu/select/confirm/cancel + scrolled course list")
 
@@ -592,6 +613,50 @@ async def main():
     o._refresh()
     assert any("KAPPAROGGERO" in t[0] for t in o.oled.texts), o.oled.texts
     print("PASS OLED: wrap + layout")
+
+    # ---- 15. Reflex game: correct -> score+1 & faster, wrong -> life & slower
+    import reflex as rxmod
+
+    class _RH:
+        def broadcast(self, m):
+            pass
+
+        def clear_text(self):
+            pass
+
+    class _Tone:
+        def set(self, on):
+            pass
+
+    assert rxmod.Reflex._barstr(1.0) == "#" * 8
+    assert rxmod.Reflex._barstr(0.0) == "-" * 8
+    assert rxmod.Reflex._barstr(0.5) == "####----"
+
+    async def _reflex_round(correct):
+        rg = rxmod.Reflex(_S(), _RH(), sidetone=_Tone())
+        rg.start()
+        task = asyncio.create_task(rg.run())
+        for _ in range(200):            # wait for the playback to start
+            if rg.playing:
+                break
+            await asyncio.sleep(0.01)
+        for _ in range(600):            # wait for it to finish
+            if rg._target and not rg.playing:
+                break
+            await asyncio.sleep(0.01)
+        rg.feed(rg._target if correct else "X", "")
+        await asyncio.sleep(0.2)
+        res = (rg.score, rg.lives, rg.wpm)
+        task.cancel()
+        return res
+
+    sc, lv, wpm = await _reflex_round(True)
+    assert sc == 1 and lv == rxmod.LIVES, (sc, lv)
+    assert wpm == rxmod.START_WPM + rxmod.STEP_UP, wpm
+    sc, lv, wpm = await _reflex_round(False)
+    assert sc == 0 and lv == rxmod.LIVES - 1, (sc, lv)
+    assert wpm == rxmod.START_WPM - rxmod.STEP_DOWN, wpm
+    print("PASS reflex: correct -> +1 WPM, wrong -> -2 WPM and a life")
 
     print("\nALL TESTS PASSED")
 

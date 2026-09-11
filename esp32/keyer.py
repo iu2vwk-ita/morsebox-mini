@@ -6,12 +6,13 @@
 # in _set_key: zero latency.
 import time
 import uasyncio as asyncio
+from config import MENU_WPM
 from morse import FROM_MORSE
 
 
 class Keyer:
     def __init__(self, paddle, settings, hub, sidetone=None, screen=None,
-                 exercise=None, easter=None):
+                 exercise=None, easter=None, reflex=None):
         self.paddle = paddle
         self.settings = settings
         self.hub = hub
@@ -19,6 +20,7 @@ class Keyer:
         self.screen = screen
         self.exercise = exercise
         self.easter = easter
+        self.reflex = reflex
         self.key_out = False
         self._unit = 60
         self._dot_run = 0
@@ -65,6 +67,9 @@ class Keyer:
             if self.exercise and self.exercise.active:
                 # during an exercise the decoded letter is the answer
                 self.exercise.feed(ch, buf)
+            elif self.reflex and self.reflex.active:
+                # during the Reflex game the decoded letter is the answer
+                self.reflex.feed(ch, buf)
             elif self.exercise and self.exercise.menu:
                 # exercise menu: pick the drill with dots / a dash
                 self._menu_select(buf)
@@ -90,11 +95,16 @@ class Keyer:
                 ex.cancel()
             return
         if buf == "-":
-            ex.select(0)
+            ex.select(0)              # full drill
         elif buf and set(buf) == {"."}:
             n = len(buf)
-            if 1 <= n <= 9:
-                ex.select(n)
+            if n == 1:
+                # menu item 1: the Reflex game (not a drill)
+                ex.cancel()
+                if self.reflex:
+                    self.reflex.start()
+            elif 2 <= n <= 10:
+                ex.select(n - 1)      # menu number -> drill number
             else:
                 ex.cancel()
         else:
@@ -107,12 +117,15 @@ class Keyer:
         Spaces are ignored, so a slow S O S (with word gaps) still works, and
         SOS keyed with no gaps at all is detected from the raw elements.
         """
+        txt = self.hub.snapshot_text().replace(" ", "").upper()
+        if self.reflex and txt.endswith("GAME"):
+            self.reflex.start()
+            return
         if not self.exercise:
             return
         if buf == "...---...":
             self.exercise.enter_menu()
             return
-        txt = self.hub.snapshot_text().replace(" ", "").upper()
         if txt.endswith("SOS"):
             self.exercise.enter_menu()
             return
@@ -145,6 +158,9 @@ class Keyer:
                 now = time.ticks_ms()
                 st = snap()
                 unit = 1200 // st["wpm"]          # ms per element (dit)
+                if self.exercise and self.exercise.menu:
+                    # while choosing a program the keyer runs slowly (MENU_WPM)
+                    unit = 1200 // MENU_WPM
                 self._unit = unit
                 mode = st["mode"]
                 rev = st["reverse"]

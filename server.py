@@ -32,6 +32,10 @@ DEFAULTS = {"wpm": 20, "reverse": False, "mode": "iambic-b",
 DIT_PIN, DAH_PIN, KEY_PIN, BUZZ_PIN = 17, 27, 22, 24
 HOLD_TIMEOUT = 2.5  # s: forget remote paddles that stop reporting
 
+# While choosing a program in the SOS menu (1-10 dots) the keyer runs slowly at
+# this speed. Once the drill starts it uses the normal WPM setting.
+MENU_WPM = 10
+
 # ---------------------------------------------------------------- settings
 def as_bool(v, default=False):
     """Strict boolean: 'false' must NOT become True (bool('false') == True)."""
@@ -360,6 +364,9 @@ class Keyer(threading.Thread):
             now = time.monotonic()
             st = snap()
             unit = 1.2 / st["wpm"]
+            if self.exercise and self.exercise.menu:
+                # while choosing a program the keyer runs slowly (MENU_WPM)
+                unit = 1.2 / MENU_WPM
             self._unit = unit
             mode = st["mode"]
             rev = st["reverse"]

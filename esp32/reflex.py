@@ -1,0 +1,147 @@
+# Reflex Trainer - a game on top of the exercise mode.
+#
+# The box plays a random character at the current speed; you key it back before
+# the timer runs out. Correct = +1 point and the speed goes UP; wrong or too
+# slow = lose a life and the speed goes DOWN. It adapts to your level.
+#
+# Start it by keying GAME (--. .- -- .). Stop by keying 6 dots (STOP).
+import random
+import time
+import uasyncio as asyncio
+from morse import MORSE
+
+START_WPM = 12
+MIN_WPM = 10
+MAX_WPM = 40
+STEP_UP = 1          # +1 WPM per correct answer
+STEP_DOWN = 2        # -2 WPM per mistake / timeout
+LIVES = 3
+ANSWER_MS = 3000     # time to answer (the "timer")
+BAR = 8              # countdown bar length on the LCD
+
+CHARS = list("ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789")
+
+
+class Reflex:
+    def __init__(self, settings, hub, sidetone=None, screen=None):
+        self.settings = settings
+        self.hub = hub
+        self.sidetone = sidetone
+        self.screen = screen
+        self.active = False
+        self.playing = False
+        self.score = 0
+        self.lives = 0
+        self.wpm = START_WPM
+        self._target = ""
+        self._got = False
+        self._ok = False
+        self._deadline = 0
+
+    # ---------------------------------------------------------- control
+    def start(self):
+        self.active = True
+        self.playing = False
+        self.score = 0
+        self.lives = LIVES
+        self.wpm = START_WPM
+        self._got = False
+        self._ok = False
+        if hasattr(self.hub, "clear_text"):
+            self.hub.clear_text()
+        self.hub.broadcast({"t": "ex", "on": True, "name": "REFLEX",
+                            "index": 0, "total": 0, "score": 0})
+
+    def stop(self):
+        self.active = False
+        self.playing = False
+
+    def feed(self, ch, buf):
+        """Called by the keyer when a letter is decoded."""
+        if not self.active or self.playing:
+            return
+        self._ok = bool(ch) and ch.upper() == self._target
+        self._got = True
+
+    # ---------------------------------------------------------- display
+    def _show(self, line2):
+        if not self.screen or not hasattr(self.screen, "set_exercise"):
+            return
+        self.screen.set_exercise(
+            "S:%d L:%d %dWPM" % (self.score, self.lives, self.wpm), line2)
+
+    @staticmethod
+    def _barstr(frac):
+        n = int(frac * BAR + 0.5)
+        n = max(0, min(BAR, n))
+        return "#" * n + "-" * (BAR - n)
+
+    # ---------------------------------------------------------- playback
+    async def _play(self, ch):
+        if not self.sidetone:
+            return
+        self.playing = True
+        try:
+            unit = max(20, 1200 // self.wpm)
+            for el in MORSE.get(ch, ""):
+                self.sidetone.set(True)
+                await asyncio.sleep_ms(unit if el == "." else 3 * unit)
+                self.sidetone.set(False)
+                await asyncio.sleep_ms(unit)
+            await asyncio.sleep_ms(2 * unit)
+        finally:
+            self.sidetone.set(False)
+            self.playing = False
+
+    # ---------------------------------------------------------- one round
+    async def _round(self):
+        self._target = random.choice(CHARS)
+        self._got = False
+        self._ok = False
+        self._show("%s  %s" % (self._target, self._barstr(1.0)))
+        await self._play(self._target)
+        if not self.active:          # stopped while playing
+            return
+        # answer window: the bar shrinks as the timer runs out
+        self._deadline = time.ticks_ms() + ANSWER_MS
+        while self.active and not self._got:
+            left = time.ticks_diff(self._deadline, time.ticks_ms())
+            if left <= 0:
+                break
+            self._show("%s  %s" % (self._target,
+                                   self._barstr(left / ANSWER_MS)))
+            await asyncio.sleep_ms(100)
+        if not self.active:
+            return
+        if self._got and self._ok:
+            self.score += 1
+            self.wpm = min(MAX_WPM, self.wpm + STEP_UP)
+            self._show("OK!  " + self._target)
+        else:
+            self.lives -= 1
+            self.wpm = max(MIN_WPM, self.wpm - STEP_DOWN)
+            self._show("ERR  " + self._target)
+        await asyncio.sleep_ms(700)
+
+    async def run(self):
+        while True:
+            try:
+                if not self.active:
+                    await asyncio.sleep_ms(100)
+                    continue
+                await self._round()
+                if self.lives <= 0:
+                    self.active = False
+                    self._show("GAME OVER %d" % self.score)
+                    await asyncio.sleep_ms(3000)
+                    if self.screen and hasattr(self.screen,
+                                               "clear_exercise"):
+                        self.screen.clear_exercise()
+            except Exception as e:
+                # never let a game error take the whole app down
+                print("reflex error:", e)
+                self.active = False
+                self.playing = False
+                if self.screen and hasattr(self.screen, "clear_exercise"):
+                    self.screen.clear_exercise()
+                await asyncio.sleep_ms(500)

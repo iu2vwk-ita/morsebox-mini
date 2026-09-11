@@ -48,21 +48,35 @@ The target is **shown on the display and played on the piezo** at the chosen
 WPM; for multi-letter targets the whole word is shown and the letter to key
 **blinks**. A correct letter **flashes** as confirmation.
 
-| N dots | Name on LCD | Drill |
+| N dots | Name on LCD | What |
 |---|---|---|
-| `.` | ALPHABET | Alphabet A-Z |
-| `..` | NUMBERS | Numbers 0-9 |
-| `...` | KOCH | Koch order |
-| `....` | LETTERS | 20 random letters |
-| `.....` | DIGITS | 20 random digits |
-| `......` | MIXED | 20 random mixed letters/digits |
-| `.......` | CALLSIGNS | Common callsigns |
-| `........` | ABBREV | Q-codes / abbreviations |
-| `.........` | PUNCT | Punctuation / prosigns |
+| `.` | GAME | Reflex Trainer (see below) |
+| `..` | ALPHABET | Alphabet A-Z |
+| `...` | NUMBERS | Numbers 0-9 |
+| `....` | KOCH | Koch order |
+| `.....` | LETTERS | 20 random letters |
+| `......` | DIGITS | 20 random digits |
+| `.......` | MIXED | 20 random mixed letters/digits |
+| `........` | CALLSIGNS | Common callsigns |
+| `.........` | ABBREV | Q-codes / abbreviations |
+| `..........` | PUNCT | Punctuation / prosigns |
 | `-` | FULL | Full drill: A-Z then 0-9 |
 
-When you pick a number the display shows its name (e.g. `3 KOCH ?`) before you
-confirm with `..`, so the mapping is always visible on the device.
+While you key the menu selection the keyer runs slowly (**10 WPM**) so the dots
+are easy to count; once a drill starts it uses your normal WPM setting. When you
+pick a number the display shows its name (e.g. `4 KOCH ?`) before you confirm
+with `..`, so the mapping is always visible on the device.
+
+### Reflex Trainer (game)
+
+Key **`SOS`** then **one dot** (or key the word `GAME`) to play. The box plays a
+random character and you key it back before the timer bar runs out:
+
+* correct -> **+1 point**, speed **+1 WPM**
+* wrong or too slow -> **lose a life**, speed **-2 WPM**
+
+It adapts to your level (10-40 WPM). You start with 3 lives; the display shows
+`S:score L:lives WPM` and the countdown bar. Key **6 dots** to stop.
 
 During a drill: **`......`** (6 dots, one group) = **stop**,
 **`------`** (6 dashes, one group) = **skip**. A correct answer advances, a

@@ -27,19 +27,29 @@ together) at the selected WPM, then you key it back.
 
 | N dots | Name on LCD | Exercise |
 |---|---|---|
-| `.` | ALPHABET | TEST1 - Alphabet A-Z |
-| `..` | NUMBERS | TEST2 - Numbers 0-9 |
-| `...` | KOCH | TEST3 - Koch order |
-| `....` | LETTERS | TEST4 - 20 random letters |
-| `.....` | DIGITS | TEST5 - 20 random digits |
-| `......` | MIXED | TEST6 - 20 random mixed |
-| `.......` | CALLSIGNS | TEST7 - Common callsigns |
-| `........` | ABBREV | TEST8 - Q-codes / abbreviations |
-| `.........` | PUNCT | TEST9 - Punctuation / prosigns |
+| `.` | GAME | Reflex Trainer (see below) |
+| `..` | ALPHABET | TEST1 - Alphabet A-Z |
+| `...` | NUMBERS | TEST2 - Numbers 0-9 |
+| `....` | KOCH | TEST3 - Koch order |
+| `.....` | LETTERS | TEST4 - 20 random letters |
+| `......` | DIGITS | TEST5 - 20 random digits |
+| `.......` | MIXED | TEST6 - 20 random mixed |
+| `........` | CALLSIGNS | TEST7 - Common callsigns |
+| `.........` | ABBREV | TEST8 - Q-codes / abbreviations |
+| `..........` | PUNCT | TEST9 - Punctuation / prosigns |
 | `-` | FULL | Full drill: A-Z then 0-9 |
 
-When you pick a number the LCD shows its name (e.g. `3 KOCH ?`) before you
-confirm with `..`.
+While you key the menu selection the keyer runs slowly (**10 WPM**,
+`config.MENU_WPM`) so the dots are easy to count; once a drill starts it uses
+the normal WPM setting. When you pick a number the LCD shows its name (e.g.
+`4 KOCH ?`) before you confirm with `..`.
+
+### Reflex Trainer (game)
+
+Key **`SOS`** then **one dot** (or key `GAME`) to play. A random character is
+played and you key it back before the timer bar runs out: correct = +1 point
+and +1 WPM, wrong/too slow = -1 life and -2 WPM (10-40 WPM, 3 lives). The LCD
+shows `S:score L:lives WPM` and the countdown bar. Key **6 dots** to stop.
 
 You can also key **`TEST`** (full drill) or **`TEST1`..`TEST9`** directly.
 
@@ -147,6 +157,7 @@ and persist across reboots.
 | `keyer.py` | `_set_key()`, `_flush_letter()`, `_check_exercise_trigger()`, `_menu_select()` | Key output, letter decoding, exercise triggers and menu |
 | `exercise.py` | `build(n)` | Builds the target list for drill `n` (0..9) |
 | `exercise.py` | `Exercise.enter_menu()`, `select()`, `confirm()`, `cancel()`, `start()`, `feed()`, `run()` | Menu, confirmation, per-letter progress, blinking target, playback |
+| `reflex.py` | `Reflex.run()`, `start()`, `feed()` | Reflex Trainer game: random target, countdown timer, adaptive WPM |
 | `hub.py` | `Hub.broadcast()`, `remote()`, `hold()` | WebSocket clients, remote paddle holds, text history |
 | `wsproto.py` | `ws_accept()`, `ws_encode()`, `ws_read_frame()` | Minimal RFC 6455 WebSocket |
 | `webserver.py` | `WebServer.start()` | HTTP routes + WebSocket upgrade (native sockets) |
