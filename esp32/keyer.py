@@ -161,6 +161,10 @@ class Keyer:
                 if self.exercise and self.exercise.menu:
                     # while choosing a program the keyer runs slowly (MENU_WPM)
                     unit = 1200 // MENU_WPM
+                elif self.reflex and self.reflex.active:
+                    # Reflex game: RX (playback) and TX (your keying) share the
+                    # same speed, and it grows/shrinks with the game
+                    unit = 1200 // max(1, self.reflex.wpm)
                 self._unit = unit
                 mode = st["mode"]
                 rev = st["reverse"]
