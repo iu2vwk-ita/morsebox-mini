@@ -93,6 +93,7 @@ def main():
         except Exception:
             pass
         try:
+            sidetone.set_mode(data.get("buzzer_mode", "passive"))
             sidetone.set_freq(data.get("tone", 650))
             sidetone.set_volume(data.get("volume", 70))
         except Exception:

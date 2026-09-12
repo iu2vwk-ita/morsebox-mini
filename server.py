@@ -27,7 +27,8 @@ SETTINGS_FILE = os.path.join(BASE_DIR, "settings.json")
 STATIC_DIR = os.path.join(BASE_DIR, "static")
 
 DEFAULTS = {"wpm": 20, "reverse": False, "mode": "iambic-b",
-            "tone": 650, "buzzer": False, "volume": 70}
+            "tone": 650, "buzzer": False, "volume": 70,
+            "buzzer_mode": "passive"}
 
 DIT_PIN, DAH_PIN, KEY_PIN, BUZZ_PIN = 17, 27, 22, 24
 HOLD_TIMEOUT = 2.5  # s: forget remote paddles that stop reporting
@@ -73,6 +74,8 @@ class Settings:
         d["buzzer"] = as_bool(d.get("buzzer", False))
         if d.get("mode") not in ("iambic-a", "iambic-b", "straight", "single"):
             d["mode"] = "iambic-b"
+        if d.get("buzzer_mode") not in ("active", "passive"):
+            d["buzzer_mode"] = "passive"
 
     @staticmethod
     def _int(d, key, default, lo, hi):
@@ -696,6 +699,9 @@ class Handler(BaseHTTPRequestHandler):
 def _apply_screen(srv, data):
     if getattr(srv, "screen", None):
         srv.screen.set_wpm(data.get("wpm", 20))
+    if getattr(srv, "sidetone", None) and "buzzer_mode" in data:
+        if hasattr(srv.sidetone, "set_mode"):
+            srv.sidetone.set_mode(data["buzzer_mode"])
     if getattr(srv, "sidetone", None) and "tone" in data:
         srv.sidetone.set_freq(data["tone"])
     if getattr(srv, "sidetone", None) and "volume" in data:

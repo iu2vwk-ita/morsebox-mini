@@ -37,6 +37,8 @@ class Settings:
         d["buzzer"] = as_bool(d.get("buzzer", False))
         if d.get("mode") not in ("iambic-a", "iambic-b", "straight", "single"):
             d["mode"] = "iambic-b"
+        if d.get("buzzer_mode") not in ("active", "passive"):
+            d["buzzer_mode"] = "passive"
 
     @staticmethod
     def _int(d, key, default, lo, hi):

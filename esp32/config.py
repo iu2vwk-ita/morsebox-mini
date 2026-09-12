@@ -83,4 +83,5 @@ BOOT_HELP = ""                           # optional second scrolled message
 BOOT_SPEED_MS = 90                       # scroll step in ms (lower = faster)
 
 DEFAULTS = {"wpm": 20, "reverse": False, "mode": "iambic-b",
-            "tone": 650, "buzzer": False, "volume": 70}
+            "tone": 650, "buzzer": False, "volume": 70,
+            "buzzer_mode": BUZZER_MODE}

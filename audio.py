@@ -74,6 +74,22 @@ class GPIOTone:
             self.freq = f
         self._apply()
 
+    def set_mode(self, mode):
+        """'passive' (piezo, PWM tone) or 'active' (buzzer with its own tone)."""
+        if mode not in ("active", "passive") or mode == self.mode:
+            return
+        self.mode = mode
+        if mode == "passive" and self._G is not None and not self._pwms:
+            try:
+                for p in self.pins:
+                    pwm = self._G.PWM(p, self.freq)
+                    pwm.start(0)
+                    self._pwms.append(pwm)
+                self._pwm = self._pwms[0] if self._pwms else None
+            except Exception:
+                pass
+        self._apply()
+
     def set_volume(self, v):
         self._volume = max(0.0, min(1.0, v / 100.0))
         self._apply()

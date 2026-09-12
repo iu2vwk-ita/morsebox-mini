@@ -11,11 +11,12 @@ const els = {
   seg: [...document.querySelectorAll('.seg button')],
   tone: $('toneSlider'), toneVal: $('toneVal'),
   vol: $('volSlider'), volVal: $('volVal'),
+  buzz: [...document.querySelectorAll('#buzzSeg button')], buzzVal: $('buzzVal'),
   padL: $('padL'), padR: $('padR'), padLT: $('padLT'), padRT: $('padRT'),
   skey: $('straightKey'), touch: $('touchPanel'),
   gpio: $('gpioLine'),
 };
-let S = { wpm: 20, reverse: false, mode: 'iambic-b', tone: 650, buzzer: false, volume: 70 };
+let S = { wpm: 20, reverse: false, mode: 'iambic-b', tone: 650, buzzer: false, volume: 70, buzzer_mode: 'passive' };
 let ws = null, retry = 0;
 let local = { l: false, r: false, k: false };   // paddle touch locali
 let keyOn = false;
@@ -125,10 +126,12 @@ function applySettings(s) {
   els.toneVal.textContent = S.tone + ' Hz';
   if (document.activeElement !== els.vol) els.vol.value = S.volume;
   els.volVal.textContent = S.volume + '%';
+  els.buzz.forEach(b => b.classList.toggle('on', b.dataset.buzz === S.buzzer_mode));
+  els.buzzVal.textContent = S.buzzer_mode;
   if (AC && osc) osc.frequency.value = S.tone;
 }
 function saveSettings() {
-  send({ t: 'settings', wpm: S.wpm, reverse: S.reverse, mode: S.mode, tone: S.tone, volume: S.volume });
+  send({ t: 'settings', wpm: S.wpm, reverse: S.reverse, mode: S.mode, tone: S.tone, volume: S.volume, buzzer_mode: S.buzzer_mode });
 }
 
 /* ---------------- controls ---------------- */
@@ -148,6 +151,7 @@ els.revBtn.onclick = () => {
   saveSettings();
 };
 els.seg.forEach(b => b.onclick = () => { S.mode = b.dataset.mode; applySettings(S); saveSettings(); });
+els.buzz.forEach(b => b.onclick = () => { S.buzzer_mode = b.dataset.buzz; applySettings(S); saveSettings(); });
 let toneTimer = null;
 els.tone.oninput = () => {
   touchEdit('tone');

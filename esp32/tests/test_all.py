@@ -425,9 +425,11 @@ async def main():
 
     # ---- 7. settings clamp (real module)
     s = settings_mod.Settings()
-    d = s.patch({"wpm": 999, "tone": 10, "volume": -5, "mode": "bogus"})
+    d = s.patch({"wpm": 999, "tone": 10, "volume": -5, "mode": "bogus",
+                 "buzzer_mode": "bogus"})
     assert d["wpm"] == 60 and d["tone"] == 500 and d["volume"] == 0
     assert d["mode"] == "iambic-b"
+    assert d["buzzer_mode"] == "passive"
     os.remove("settings.json")
     print("PASS settings clamp")
 
@@ -455,7 +457,14 @@ async def main():
     st.set_freq(850)
     assert st.freq == 850 and not any(p.deinited for p in st._pwms)
     machine_mod.PWM.fail_freq = False
-    print("PASS sidetone robustness (freq fallback)")
+    # buzzer mode can be switched at runtime (web UI selector)
+    st.set_mode("active")
+    assert st.mode == "active"
+    st.set(True)
+    st.set(False)
+    st.set_mode("passive")
+    assert st.mode == "passive"
+    print("PASS sidetone robustness (freq fallback + active/passive mode)")
 
     # ---- 9. web server: parsing, routes, WS handshake
     class FakeWriter:
@@ -646,7 +655,8 @@ async def main():
             if rg._target and not rg.playing:
                 break
             await asyncio.sleep(0.01)
-        rg.feed(rg._target if correct else "X", "")
+        # "~" is never in CHARS, so it is always a wrong answer
+        rg.feed(rg._target if correct else "~", "")
         await asyncio.sleep(0.2)
         res = (rg.score, rg.round, rg.wpm)
         task.cancel()

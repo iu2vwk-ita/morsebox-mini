@@ -105,6 +105,12 @@ class Sidetone:
             self.freq = f
         self._apply()
 
+    def set_mode(self, mode):
+        """'passive' (piezo, PWM tone) or 'active' (buzzer with its own tone)."""
+        if mode in ("active", "passive") and mode != self.mode:
+            self.mode = mode
+            self._apply()
+
     def set_volume(self, v):
         self.volume = max(0.0, min(1.0, v / 100.0))
         self._apply()
