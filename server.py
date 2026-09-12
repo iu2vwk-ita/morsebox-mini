@@ -343,7 +343,7 @@ class Keyer(threading.Thread):
                 # menu item 1: the Reflex game (not a drill)
                 ex.cancel()
                 if self.reflex:
-                    self.reflex.start()
+                    self.reflex.start_game()
             elif 2 <= n <= 10:
                 ex.select(n - 1)      # menu number -> drill number
             else:
@@ -355,7 +355,7 @@ class Keyer(threading.Thread):
         """Start an exercise on SOS (menu) or TEST / TESTn."""
         txt = self.hub.snapshot_text().replace(" ", "").upper()
         if self.reflex and txt.endswith("GAME"):
-            self.reflex.start()
+            self.reflex.start_game()
             return
         if not self.exercise:
             return
@@ -367,10 +367,10 @@ class Keyer(threading.Thread):
             return
         for n in range(9, 0, -1):
             if txt.endswith("TEST%d" % n):
-                self.exercise.start(n)
+                self.exercise.start_drill(n)
                 return
         if txt.endswith("TEST"):
-            self.exercise.start(0)
+            self.exercise.start_drill(0)
 
     def run(self):
         dit_mem = dah_mem = False

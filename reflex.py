@@ -47,7 +47,7 @@ class Reflex(threading.Thread):
         self._stop = threading.Event()
 
     # ---------------------------------------------------------- control
-    def start(self):
+    def start_game(self):
         self.active = True
         self.playing = False
         self.score = 0

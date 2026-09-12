@@ -137,7 +137,7 @@ class Exercise(threading.Thread):
 
     def confirm(self):
         if self.pending is not None:
-            self.start(self.pending)
+            self.start_drill(self.pending)
 
     def cancel(self):
         if self.pending is not None:
@@ -150,7 +150,7 @@ class Exercise(threading.Thread):
             self.menu = False
             self._clear()
 
-    def start(self, n):
+    def start_drill(self, n):
         self.menu = False
         self.pending = None
         self.targets = build(n)
