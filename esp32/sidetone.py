@@ -5,6 +5,10 @@
 from machine import Pin, PWM
 from config import BUZZER_MODE
 
+# Active buzzers have their own oscillator; we gate their supply with a fast
+# PWM so the volume slider still works (best with a 5-9V supply + transistor).
+ACTIVE_GATE_HZ = 20000
+
 
 class Sidetone:
     def __init__(self, pins, freq=650, mode=BUZZER_MODE):
@@ -15,8 +19,9 @@ class Sidetone:
         self._pins = list(pins)
         self._pwms = []
         self._ok = False
+        gate = ACTIVE_GATE_HZ if mode == "active" else self.freq
         for p in self._pins:
-            pwm = self._make_pwm(p, self.freq)
+            pwm = self._make_pwm(p, gate)
             if pwm is not None:
                 self._pwms.append(pwm)
         self._ok = bool(self._pwms)
@@ -53,8 +58,9 @@ class Sidetone:
         if not self._pwms:
             return
         if self.mode == "active":
-            # buzzer with built-in oscillator: DC on/off (max duty = on)
-            d = 65535 if (self._on and self.volume > 0.01) else 0
+            # buzzer with built-in oscillator: gate its supply with a fast PWM
+            # so the volume slider still works (needs enough supply voltage)
+            d = int(65535 * self.volume) if self._on else 0
         else:
             # passive piezo: 50% square wave * volume
             d = int(32768 * self.volume) if self._on else 0
@@ -79,6 +85,10 @@ class Sidetone:
     def _set_freq(self, f):
         f = int(f)
         if f == self.freq:
+            return
+        if self.mode == "active":
+            # the buzzer's tone is fixed: remember f for when we go passive
+            self.freq = f
             return
         applied = 0
         for i, pwm in enumerate(self._pwms):
@@ -109,6 +119,12 @@ class Sidetone:
         """'passive' (piezo, PWM tone) or 'active' (buzzer with its own tone)."""
         if mode in ("active", "passive") and mode != self.mode:
             self.mode = mode
+            f = ACTIVE_GATE_HZ if mode == "active" else self.freq
+            for pwm in self._pwms:
+                try:
+                    pwm.freq(f)
+                except Exception:
+                    pass
             self._apply()
 
     def set_volume(self, v):

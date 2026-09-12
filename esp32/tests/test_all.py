@@ -460,7 +460,11 @@ async def main():
     # buzzer mode can be switched at runtime (web UI selector)
     st.set_mode("active")
     assert st.mode == "active"
+    st.set_volume(50)
     st.set(True)
+    # active mode gates the supply: duty follows the volume
+    assert all(p._duty == int(65535 * 0.5) for p in st._pwms), \
+        [p._duty for p in st._pwms]
     st.set(False)
     st.set_mode("passive")
     assert st.mode == "passive"
