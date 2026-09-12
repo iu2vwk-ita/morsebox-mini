@@ -39,9 +39,31 @@ cp iu2vwk-morse.service /etc/systemd/system/
 systemctl daemon-reload
 systemctl enable --now iu2vwk-morse
 
-echo "[5/6] Access Point $AP_SSID (hostapd + dnsmasq)..."
-# Wi-Fi interface: a single network, fixed AP
-cat >/etc/hostapd/hostapd.conf <<EOF
+echo "[5/6] Access Point $AP_SSID..."
+if command -v nmcli >/dev/null 2>&1; then
+  # NetworkManager (Raspberry Pi OS Bookworm/Trixie): create an AP connection.
+  # hostapd/dnsmasq/dhcpcd are NOT used here.
+  systemctl disable --now hostapd 2>/dev/null || true
+  systemctl disable --now dnsmasq 2>/dev/null || true
+  rm -f /etc/dnsmasq.d/morseap 2>/dev/null || true
+  rm -f /etc/dhcpcd.conf 2>/dev/null || true
+  # stop any Wi-Fi client connection that is holding $WLAN
+  for c in $(nmcli -t -f NAME,DEVICE con show --active 2>/dev/null \
+             | awk -F: -v d="$WLAN" '$2==d {print $1}'); do
+    [ -n "$c" ] && nmcli con modify "$c" connection.autoconnect no 2>/dev/null || true
+  done
+  nmcli con delete "$AP_SSID-AP" 2>/dev/null || true
+  nmcli con add type wifi ifname "$WLAN" con-name "$AP_SSID-AP" \
+        autoconnect yes ssid "$AP_SSID" || true
+  nmcli con modify "$AP_SSID-AP" \
+        802-11-wireless.mode ap 802-11-wireless.band bg \
+        802-11-wireless.channel 6 \
+        ipv4.method shared ipv4.addresses 10.42.0.1/24 ipv6.method disabled \
+        wifi-sec.key-mgmt wpa-psk wifi-sec.psk "$AP_PASS" || true
+  nmcli con up "$AP_SSID-AP" || true
+else
+  # classic hostapd + dnsmasq + dhcpcd (older Raspberry Pi OS)
+  cat >/etc/hostapd/hostapd.conf <<EOF
 interface=$WLAN
 driver=nl80211
 ssid=$AP_SSID
@@ -52,10 +74,8 @@ wpa_passphrase=$AP_PASS
 wpa_key_mgmt=WPA-PSK
 rsn_pairwise=CCMP
 EOF
-sed -i 's|^#\?DAEMON_CONF=.*|DAEMON_CONF="/etc/hostapd/hostapd.conf"|' /etc/default/hostapd
-
-# Lightweight DHCP server on the AP network (10.42.0.x), gateway 10.42.0.1
-cat >/etc/dnsmasq.d/morseap <<EOF
+  sed -i 's|^#\?DAEMON_CONF=.*|DAEMON_CONF="/etc/hostapd/hostapd.conf"|' /etc/default/hostapd
+  cat >/etc/dnsmasq.d/morseap <<EOF
 interface=$WLAN
 dhcp-range=10.42.0.10,10.42.0.100,255.255.255.0,12h
 dhcp-option=3,10.42.0.1
@@ -63,20 +83,17 @@ dhcp-option=6,10.42.0.1
 address=/#/10.42.0.1
 no-resolv
 EOF
-
-# Static AP IP on wlan0
-cat >/etc/dhcpcd.conf <<EOF
+  cat >/etc/dhcpcd.conf <<EOF
 interface $WLAN
 static ip_address=10.42.0.1/24
 nohook wpa_supplicant
 EOF
-
-# disable the default AP services that would get in the way
-systemctl unmask hostapd || true
-systemctl restart dnsmasq || true
-systemctl enable --now hostapd || true
-hostapd -B /etc/hostapd/hostapd.conf 2>/dev/null || true
-ip addr add 10.42.0.1/24 dev $WLAN 2>/dev/null || true
+  systemctl unmask hostapd || true
+  systemctl restart dnsmasq || true
+  systemctl enable --now hostapd || true
+  hostapd -B /etc/hostapd/hostapd.conf 2>/dev/null || true
+  ip addr add 10.42.0.1/24 dev $WLAN 2>/dev/null || true
+fi
 
 echo "[6/6] Check..."
 sleep 2
