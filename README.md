@@ -33,10 +33,13 @@ git clone https://github.com/iu2vwk-ita/morsebox-mini.git && cd morsebox/esp32 &
 * Iambic A / B, straight key and a **SINGLE** beginner mode (one tap = one
   element, no memory/repeat), 5 to 60 WPM, paddle reverse (DX⇄SX)
 * Live decoded text on the web page and on the display
-* Sidetone pitch (400–4000 Hz) and volume from the page, on 1 to 3 piezos
+* Sidetone pitch (500–1000 Hz) and volume from the page, on 1 to 3 piezos;
+  **Active / Passive buzzer** selector (active buzzer or passive piezo)
 * Key with a paddle, a straight key, the on-screen paddle, or the keyboard
   (`Z` / `X` / space)
 * **Exercise mode / CW courses** — a built-in trainer (see below)
+* **Reflex Trainer game** — 40 random characters, adaptive speed, countdown
+  timer (menu item 1)
 
 ![Web UI](screenshot-ui.png)
 

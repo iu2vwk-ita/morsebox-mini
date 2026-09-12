@@ -206,13 +206,15 @@ class Screen:
         """Show the exercise prompt/target instead of WPM + decoded text."""
         with self._lock:
             self._exercise = True
+            self._ex_lines = (line1, line2)
             self._text = (line1 + "   " + line2).upper()
             self._off = 0
 
     def clear_exercise(self):
         with self._lock:
             self._exercise = False
-            self._text = self._build()
+            if not getattr(self, "_banner", False):
+                self._text = self._build()
 
     def add_char(self, ch):
         with self._lock:
@@ -227,8 +229,26 @@ class Screen:
         """Wipe the decoded text (web UI 'Clear' button)."""
         with self._lock:
             self.decode = ""
-            if not getattr(self, "_exercise", False):
+            if not getattr(self, "_exercise", False) and \
+                    not getattr(self, "_banner", False):
                 self._text = self._build()
+
+    def set_banner(self, line1, line2=""):
+        """Transient message that overrides everything (easter egg)."""
+        with self._lock:
+            self._banner = True
+            self._text = (line1 + "   " + line2).upper()
+            self._off = 0
+
+    def clear_banner(self):
+        with self._lock:
+            self._banner = False
+            if getattr(self, "_exercise", False):
+                l1, l2 = getattr(self, "_ex_lines", ("", ""))
+                self._text = (l1 + "   " + l2).upper()
+                self._off = 0
+                return          # restore the exercise prompt
+            self._text = self._build()
 
     def _frame_text(self):
         # columns per character (5) + 1 space = 6

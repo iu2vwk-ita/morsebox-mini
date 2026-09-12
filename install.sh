@@ -29,7 +29,8 @@ systemctl enable --now avahi-daemon || true
 
 echo "[3/6] Files in /opt/iu2vwk-morse..."
 mkdir -p /opt/iu2vwk-morse
-cp server.py display.py /opt/iu2vwk-morse/
+cp server.py display.py exercise.py reflex.py easter.py audio.py morse.py \
+   /opt/iu2vwk-morse/
 rm -rf /opt/iu2vwk-morse/static
 cp -r static /opt/iu2vwk-morse/
 

@@ -21,6 +21,8 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import urlparse
 from morse import FROM_MORSE
 from exercise import Exercise
+from reflex import Reflex
+from easter import EasterEgg
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 SETTINGS_FILE = os.path.join(BASE_DIR, "settings.json")
@@ -260,12 +262,15 @@ class Hub:
 class Keyer(threading.Thread):
     """Iambic keyer + decoder. 1 ms tick, events via hub.broadcast."""
 
-    def __init__(self, gpio, settings, hub, exercise=None):
+    def __init__(self, gpio, settings, hub, exercise=None, reflex=None,
+                 easter=None):
         super().__init__(daemon=True)
         self.gpio = gpio
         self.settings = settings
         self.hub = hub
         self.exercise = exercise
+        self.reflex = reflex
+        self.easter = easter
         self.key_out = False
         self._stop = threading.Event()
         self.screen = None  # matrix display (optional)
@@ -278,7 +283,10 @@ class Keyer(threading.Thread):
         self.hub.broadcast({"t": "key", "on": on,
                             "dit": getattr(self, "_in_dit", False),
                             "dah": getattr(self, "_in_dah", False)})
-        if self.sidetone and not (self.exercise and self.exercise.playing):
+        busy = ((self.exercise and self.exercise.playing)
+                or (self.reflex and self.reflex.playing)
+                or (self.easter and self.easter.playing))
+        if self.sidetone and not busy:
             self.sidetone.set(on)
         now = time.monotonic()
         if on:
@@ -297,6 +305,13 @@ class Keyer(threading.Thread):
             if self.exercise and self.exercise.active:
                 # during an exercise the decoded letter is the answer
                 self.exercise.feed(ch, buf)
+            elif self.reflex and self.reflex.active:
+                # during the Reflex game the decoded letter is the answer
+                self.reflex.feed(ch, buf)
+            elif self.easter and self.easter.playing:
+                # 6 dots stop the easter-egg message early
+                if buf and set(buf) == {"."} and len(buf) >= 6:
+                    self.easter.stop()
             elif self.exercise and self.exercise.menu:
                 self._menu_select(buf)
             elif self.exercise and buf == "...---...":
@@ -321,11 +336,16 @@ class Keyer(threading.Thread):
                 ex.cancel()
             return
         if buf == "-":
-            ex.select(0)
+            ex.select(0)              # full drill
         elif buf and set(buf) == {"."}:
             n = len(buf)
-            if 1 <= n <= 9:
-                ex.select(n)
+            if n == 1:
+                # menu item 1: the Reflex game (not a drill)
+                ex.cancel()
+                if self.reflex:
+                    self.reflex.start()
+            elif 2 <= n <= 10:
+                ex.select(n - 1)      # menu number -> drill number
             else:
                 ex.cancel()
         else:
@@ -333,12 +353,15 @@ class Keyer(threading.Thread):
 
     def _check_exercise_trigger(self, buf=None):
         """Start an exercise on SOS (menu) or TEST / TESTn."""
+        txt = self.hub.snapshot_text().replace(" ", "").upper()
+        if self.reflex and txt.endswith("GAME"):
+            self.reflex.start()
+            return
         if not self.exercise:
             return
         if buf == "...---...":
             self.exercise.enter_menu()
             return
-        txt = self.hub.snapshot_text().replace(" ", "").upper()
         if txt.endswith("SOS"):
             self.exercise.enter_menu()
             return
@@ -370,6 +393,9 @@ class Keyer(threading.Thread):
             if self.exercise and self.exercise.menu:
                 # while choosing a program the keyer runs slowly (MENU_WPM)
                 unit = 1.2 / MENU_WPM
+            elif self.reflex and self.reflex.active:
+                # Reflex game: RX and TX share the same speed
+                unit = 1.2 / max(1, self.reflex.wpm)
             self._unit = unit
             mode = st["mode"]
             rev = st["reverse"]
@@ -788,6 +814,15 @@ def main():
     exercise = Exercise(settings, hub, sidetone=sidetone, screen=screen)
     keyer.exercise = exercise
     exercise.start()
+
+    # Reflex game (menu item 1) + hidden easter egg (10 dots + a dash)
+    reflex = Reflex(settings, hub, sidetone=sidetone, screen=screen)
+    keyer.reflex = reflex
+    reflex.start()
+
+    easter = EasterEgg(settings, sidetone=sidetone, screen=screen)
+    keyer.easter = easter
+    easter.start()
 
     srv = ThreadingHTTPServer((args.host, args.port), Handler)
     srv.daemon_threads = True

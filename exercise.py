@@ -31,9 +31,11 @@ NAMES = {0: "FULL", 1: "ALPHABET", 2: "NUMBERS", 3: "KOCH",
          8: "ABBREV", 9: "PUNCT"}
 
 # Menu: scrolled on the display so you can read the courses before choosing.
-MENU_LIST = "   ".join(["%d %s" % (n, NAMES[n]) for n in range(1, 10)])
+# Menu item 1 is the Reflex game; the courses are shifted by one (2..10).
+MENU_LIST = "1 GAME   "
+MENU_LIST += "   ".join(["%d %s" % (n + 1, NAMES[n]) for n in range(1, 10)])
 MENU_LIST += "   - FULL   "
-MENU_HINT = "1-9  ..=ok  --=no"
+MENU_HINT = "1-10 ..=ok --=no"
 MENU_SCROLL_S = 0.32
 MENU_TIMEOUT_S = 20
 
@@ -113,9 +115,9 @@ class Exercise(threading.Thread):
         elif self.pending == 0:
             self.screen.set_exercise("- FULL ?", ".. OK  -- NO")
         else:
-            # show which drill the number maps to (1 ALPHABET, 3 KOCH, ...)
+            # show the menu number + name (2 ALPHABET, 4 KOCH, ...)
             self.screen.set_exercise(
-                "%d %s ?" % (self.pending, NAMES.get(self.pending, "EX")),
+                "%d %s ?" % (self.pending + 1, NAMES.get(self.pending, "EX")),
                 ".. OK  -- NO")
 
     def _menu_scroll(self):
